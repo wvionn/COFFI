@@ -1,0 +1,72 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ / Android Studio
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# Visual Studio Code
+.vscode/
+
+# Flutter / Dart / Pub
+**/doc/api/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+**/build/
+coverage/
+
+# Android specific chores & secrets
+**/android/.gradle/
+**/android/local.properties
+**/android/**/build/
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+**/android/*.iml
+**/android/cafeku_android.iml
+*.keystore
+*.jks
+*.key
+key.properties
+gradle-wrapper.jar
+
+# iOS / macOS ephemeral & generated
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/app.flx
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/**/DerivedData/
+**/macos/Flutter/ephemeral/
+**/macos/Pods/
+
+# Linux / Windows ephemeral & generated
+**/linux/flutter/ephemeral/
+**/windows/flutter/ephemeral/
+
+# Secrets & Environment
+*.env
+*.env.*
+!.env.example
+secrets.json
+app.*.symbols
+app.*.map.json
