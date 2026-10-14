@@ -70,3 +70,5 @@ gradle-wrapper.jar
 secrets.json
 app.*.symbols
 app.*.map.json
+wireframes/
+
