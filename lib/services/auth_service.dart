@@ -15,7 +15,7 @@ class AuthService {
       id: 'admin_1',
       fullName: 'Ronald (Owner)',
       role: 'admin',
-      pinCode: '1234',
+      email: 'admin@coffi.com',
       phone: '081234567890',
       isActive: true,
     ),
@@ -23,7 +23,7 @@ class AuthService {
       id: 'kasir_1',
       fullName: 'Siti Rahma',
       role: 'kasir',
-      pinCode: '1111',
+      email: 'kasir@coffi.com',
       phone: '081234567891',
       isActive: true,
     ),
@@ -31,7 +31,7 @@ class AuthService {
       id: 'dapur_1',
       fullName: 'Budi Santoso (Barista)',
       role: 'dapur',
-      pinCode: '2222',
+      email: 'dapur@coffi.com',
       phone: '081234567892',
       isActive: true,
     ),
@@ -42,14 +42,16 @@ class AuthService {
   void addOrUpdateStaff({
     required String fullName,
     required String role,
-    required String pinCode,
+    required String email,
   }) {
-    final existingIndex = _demoStaffList.indexWhere((s) => s.pinCode == pinCode);
+    final lower = email.toLowerCase();
+    final existingIndex =
+        _demoStaffList.indexWhere((s) => s.email?.toLowerCase() == lower);
     if (existingIndex != -1) {
       _demoStaffList[existingIndex] = _demoStaffList[existingIndex].copyWith(
         fullName: fullName,
         role: role,
-        pinCode: pinCode,
+        email: email,
       );
     } else {
       _demoStaffList.add(
@@ -57,7 +59,7 @@ class AuthService {
           id: 'staff_${DateTime.now().millisecondsSinceEpoch}',
           fullName: fullName,
           role: role,
-          pinCode: pinCode,
+          email: email,
           isActive: true,
         ),
       );
@@ -102,10 +104,20 @@ class AuthService {
       }
     }
 
-    // Demo email login fallback
-    if (email.contains('admin')) {
+    // Demo email login fallback: match registered demo staff by email
+    final lower = email.toLowerCase();
+    final matched = _demoStaffList
+        .where((u) => u.isActive && u.email?.toLowerCase() == lower)
+        .toList();
+    if (matched.isNotEmpty) {
+      _currentProfile = matched.first;
+      return _currentProfile;
+    }
+
+    // Otherwise pick role by keyword in the email
+    if (lower.contains('admin')) {
       _currentProfile = _demoStaffList[0];
-    } else if (email.contains('dapur') || email.contains('barista')) {
+    } else if (lower.contains('dapur') || lower.contains('barista')) {
       _currentProfile = _demoStaffList[2];
     } else {
       _currentProfile = _demoStaffList[1];
@@ -113,41 +125,6 @@ class AuthService {
     return _currentProfile;
   }
 
-  /// Fast PIN Login (FR-1.1)
-  Future<ProfileModel?> signInWithPin(String pin) async {
-    final sb = SupabaseService.instance;
-    if (sb.isConnected) {
-      try {
-        final profileData = await sb.client
-            .from('profiles')
-            .select()
-            .eq('pin_code', pin)
-            .eq('is_active', true)
-            .maybeSingle();
-
-        if (profileData != null) {
-          _currentProfile = ProfileModel.fromMap(profileData);
-          return _currentProfile;
-        }
-      } catch (e) {
-        debugPrint('Auth signInWithPin error: $e');
-      }
-    }
-
-    // Check demo staff PINs
-    final matched = _demoStaffList.where((u) => u.pinCode == pin && u.isActive).toList();
-    if (matched.isNotEmpty) {
-      _currentProfile = matched.first;
-      return _currentProfile;
-    }
-
-    return null;
-  }
-
-  /// Direct quick role switch for development/testing
-  void setSessionProfile(ProfileModel profile) {
-    _currentProfile = profile;
-  }
 
   /// Admin: Fetch all staff profiles
   Future<List<ProfileModel>> fetchStaffList() async {

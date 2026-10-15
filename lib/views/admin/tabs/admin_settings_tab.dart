@@ -19,7 +19,7 @@ class _AdminSettingsTabState extends State<AdminSettingsTab> {
   final TextEditingController _anonKeyController = TextEditingController(text: SupabaseConfig.supabaseAnonKey);
 
   // General cafe profile state
-  String _cafeName = 'Cafeku Coffee & Resto';
+  String _cafeName = 'COFFI Coffee & Resto';
   String _cafeAddress = 'Jl. Kampus Merdeka No. 42';
   String _cafePhone = '0812-3456-7890';
   String _receiptFooter = 'Terima kasih atas kunjungan Anda!';
@@ -34,7 +34,7 @@ class _AdminSettingsTabState extends State<AdminSettingsTab> {
   }
 
   // ==========================================
-  // MODAL 1: AKUN STAF & PIN
+  // MODAL 1: AKUN STAF
   // ==========================================
   void _openStaffModule(BuildContext context) {
     showModalBottomSheet(
@@ -52,7 +52,7 @@ class _AdminSettingsTabState extends State<AdminSettingsTab> {
             child: Column(
               children: [
                 _buildModalHeader(
-                  title: 'Manajemen Akun Staf & PIN',
+                  title: 'Manajemen Akun Staf',
                   subtitle: '${auth.demoStaff.length} Staf Terdaftar',
                   icon: Icons.badge_rounded,
                   iconColor: AppColors.warmCaramel,
@@ -70,7 +70,7 @@ class _AdminSettingsTabState extends State<AdminSettingsTab> {
                       ),
                       onPressed: () => _showAddStaffDialog(context, auth),
                       icon: const Icon(Icons.person_add_rounded, size: 18),
-                      label: const Text('Buat PIN / Tambah Staf Baru', style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: const Text('Tambah Staf Baru', style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ),
@@ -115,7 +115,7 @@ class _AdminSettingsTabState extends State<AdminSettingsTab> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'Posisi: ${staff.role.toUpperCase()} • 🔑 PIN: ${staff.pinCode}',
+                                    '${staff.role.toUpperCase()} • ${staff.email ?? '-'}',
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 12,
                                       color: AppColors.textSecondary,
@@ -156,7 +156,7 @@ class _AdminSettingsTabState extends State<AdminSettingsTab> {
 
   void _showAddStaffDialog(BuildContext context, AuthProvider auth) {
     final nameController = TextEditingController();
-    final pinController = TextEditingController();
+    final emailController = TextEditingController();
     String selectedRole = 'kasir';
 
     showDialog(
@@ -165,7 +165,7 @@ class _AdminSettingsTabState extends State<AdminSettingsTab> {
         builder: (ctx, setState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Text(
-            'Buat PIN & Tambah Staf',
+            'Tambah Staf Baru',
             style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 16),
           ),
           content: Column(
@@ -188,13 +188,12 @@ class _AdminSettingsTabState extends State<AdminSettingsTab> {
                 onChanged: (val) => setState(() => selectedRole = val ?? 'kasir'),
               ),
               const SizedBox(height: 12),
-              Text('4-Digit PIN Masuk Cepat:', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold)),
+              Text('Email Login:', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold)),
               const SizedBox(height: 4),
               TextField(
-                controller: pinController,
-                keyboardType: TextInputType.number,
-                maxLength: 4,
-                decoration: const InputDecoration(hintText: 'e.g. 5555', counterText: ''),
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(hintText: 'e.g. maya@coffi.com'),
               ),
             ],
           ),
@@ -203,26 +202,27 @@ class _AdminSettingsTabState extends State<AdminSettingsTab> {
             ElevatedButton(
               onPressed: () {
                 final name = nameController.text.trim();
-                final pin = pinController.text.trim();
-                if (name.isNotEmpty && pin.length == 4) {
-                  auth.addStaff(fullName: name, role: selectedRole, pinCode: pin);
+                final email = emailController.text.trim();
+                final validEmail = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email);
+                if (name.isNotEmpty && validEmail) {
+                  auth.addStaff(fullName: name, role: selectedRole, email: email);
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Staf $name dengan PIN $pin berhasil dibuat!'),
+                      content: Text('Staf $name ($email) berhasil ditambahkan!'),
                       backgroundColor: AppColors.matchaGreen,
                     ),
                   );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Nama wajib diisi dan PIN harus tepat 4 digit angka!'),
+                      content: Text('Nama wajib diisi dan email harus valid!'),
                       backgroundColor: AppColors.amberOrange,
                     ),
                   );
                 }
               },
-              child: const Text('Simpan Staf & PIN'),
+              child: const Text('Simpan Staf'),
             ),
           ],
         ),
@@ -564,7 +564,7 @@ class _AdminSettingsTabState extends State<AdminSettingsTab> {
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
                 children: [
-                  _buildInfoTile('Aplikasi', 'Cafeku POS Mobile v1.0.0'),
+                  _buildInfoTile('Aplikasi', 'COFFI POS Mobile v1.0.0'),
                   _buildInfoTile('Mode Pelayanan', 'Counter Queue & Name Calling'),
                   _buildInfoTile(
                     'Database Cloud',
@@ -823,7 +823,7 @@ class _AdminSettingsTabState extends State<AdminSettingsTab> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          auth.currentProfile?.fullName ?? 'Owner Cafeku',
+                          auth.currentProfile?.fullName ?? 'Owner COFFI',
                           style: GoogleFonts.plusJakartaSans(
                             color: Colors.white,
                             fontSize: 16,
@@ -869,7 +869,7 @@ class _AdminSettingsTabState extends State<AdminSettingsTab> {
               childAspectRatio: 1.05,
               children: [
                 _buildGridCard(
-                  title: 'Akun Staf & PIN',
+                  title: 'Akun Staf',
                   subtitle: '${auth.demoStaff.length} Staf Terdaftar',
                   icon: Icons.badge_rounded,
                   iconColor: AppColors.warmCaramel,
@@ -967,7 +967,7 @@ class _AdminSettingsTabState extends State<AdminSettingsTab> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Akhiri sesi dan kembali ke Login PIN Staf',
+                            'Akhiri sesi dan kembali ke halaman Login',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 11.5,
                               color: AppColors.textSecondary,

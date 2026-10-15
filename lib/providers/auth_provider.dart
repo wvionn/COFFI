@@ -35,47 +35,15 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> loginWithPin(String pin) async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
-
-    try {
-      final profile = await _authService.signInWithPin(pin);
-      if (profile != null) {
-        _currentProfile = profile;
-        _isLoading = false;
-        notifyListeners();
-        return true;
-      } else {
-        _isLoading = false;
-        _errorMessage = 'PIN tidak valid atau akun tidak aktif';
-        notifyListeners();
-        return false;
-      }
-    } catch (e) {
-      _isLoading = false;
-      _errorMessage = e.toString();
-      notifyListeners();
-      return false;
-    }
-  }
-
-  void switchDemoUser(ProfileModel profile) {
-    _currentProfile = profile;
-    _authService.setSessionProfile(profile);
-    notifyListeners();
-  }
-
   void addStaff({
     required String fullName,
     required String role,
-    required String pinCode,
+    required String email,
   }) {
     _authService.addOrUpdateStaff(
       fullName: fullName,
       role: role,
-      pinCode: pinCode,
+      email: email,
     );
     notifyListeners();
   }
