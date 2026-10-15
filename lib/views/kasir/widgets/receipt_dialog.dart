@@ -94,7 +94,7 @@ class ReceiptDialog extends StatelessWidget {
                     // Cafe Header
                     Center(
                       child: Text(
-                        'CAFEKU COFFEE & RESTO',
+                        'COFFI COFFEE & RESTO',
                         style: GoogleFonts.courierPrime(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
@@ -201,7 +201,7 @@ class ReceiptDialog extends StatelessWidget {
                     ),
                     Center(
                       child: Text(
-                        'Wifi: Cafeku_Guest / Pass: kopienak',
+                        'Wifi: COFFI_Guest / Pass: kopienak',
                         style: GoogleFonts.courierPrime(fontSize: 10),
                       ),
                     ),

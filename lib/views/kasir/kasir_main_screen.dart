@@ -954,7 +954,7 @@ class _KasirMainScreenState extends State<KasirMainScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        auth.currentProfile?.fullName ?? 'Kasir Cafeku',
+                        auth.currentProfile?.fullName ?? 'Kasir COFFI',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,

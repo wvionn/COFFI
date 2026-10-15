@@ -24,11 +24,11 @@ void main() async {
   // Initialize Supabase & Realtime connection
   await SupabaseService.instance.initialize();
 
-  runApp(const CafekuApp());
+  runApp(const CoffiApp());
 }
 
-class CafekuApp extends StatelessWidget {
-  const CafekuApp({super.key});
+class CoffiApp extends StatelessWidget {
+  const CoffiApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +42,7 @@ class CafekuApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AdminDashboardProvider()),
       ],
       child: MaterialApp(
-        title: 'Cafeku - Modern Cafe POS & Kitchen',
+        title: 'COFFI - Modern Cafe POS & Kitchen',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         home: const LoginScreen(),

@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cafeku/main.dart';
+import 'package:coffi/main.dart';
 
 void main() {
-  testWidgets('Cafeku smoke test', (WidgetTester tester) async {
-    await tester.pumpWidget(const CafekuApp());
-    expect(find.text('Cafeku'), findsOneWidget);
+  testWidgets('COFFI smoke test', (WidgetTester tester) async {
+    await tester.pumpWidget(const CoffiApp());
+    expect(find.text('COFFI'), findsOneWidget);
   });
 }

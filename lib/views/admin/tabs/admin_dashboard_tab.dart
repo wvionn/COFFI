@@ -47,7 +47,7 @@ class AdminDashboardTab extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Cafeku Owner Dashboard',
+              'COFFI Owner Dashboard',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,

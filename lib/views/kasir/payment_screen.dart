@@ -289,7 +289,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 child: Column(
                   children: [
                     Text(
-                      'SCAN QRIS DINAMIS CAFEKU',
+                      'SCAN QRIS DINAMIS COFFI',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
@@ -372,7 +372,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('BCA: 8720-9988-1234', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800)),
-                          Text('A/N: PT Cafeku Digital Kuliner', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.textSecondary)),
+                          Text('A/N: PT COFFI Digital Kuliner', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.textSecondary)),
                         ],
                       ),
                     ),
