@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
@@ -8,6 +8,7 @@ import '../admin/admin_main_screen.dart';
 import '../dapur/dapur_kds_screen.dart';
 import '../kasir/kasir_main_screen.dart';
 
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -16,12 +17,10 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  bool _isPinMode = true; // DIRECTLY TO PIN STAFF AS REQUESTED
   bool _isPasswordVisible = false;
-  String _enteredPin = '';
 
-  final _emailController = TextEditingController(text: 'admin@cafeku.com');
-  final _passwordController = TextEditingController(text: 'password123');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
 
   @override
   void dispose() {
@@ -30,52 +29,21 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _onPinDigitPressed(String digit) {
-    if (_enteredPin.length < 4) {
-      setState(() {
-        _enteredPin += digit;
-      });
-
-      if (_enteredPin.length == 4) {
-        _submitPin();
-      }
-    }
-  }
-
-  void _onPinBackspace() {
-    if (_enteredPin.isNotEmpty) {
-      setState(() {
-        _enteredPin = _enteredPin.substring(0, _enteredPin.length - 1);
-      });
-    }
-  }
-
-  Future<void> _submitPin() async {
-    final authProvider = context.read<AuthProvider>();
-    final success = await authProvider.loginWithPin(_enteredPin);
-    if (!mounted) return;
-
-    if (success) {
-      _navigateForRole(authProvider.currentProfile!);
-    } else {
-      setState(() {
-        _enteredPin = '';
-      });
+  Future<void> _submit() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authProvider.errorMessage ?? 'PIN salah! Silakan coba lagi.'),
+        const SnackBar(
+          content: Text('Email dan password wajib diisi.'),
           backgroundColor: AppColors.berryRed,
         ),
       );
+      return;
     }
-  }
 
-  Future<void> _submitEmail() async {
     final authProvider = context.read<AuthProvider>();
-    final success = await authProvider.loginWithEmail(
-      _emailController.text.trim(),
-      _passwordController.text.trim(),
-    );
+    final success = await authProvider.loginWithEmail(email, password);
     if (!mounted) return;
 
     if (success) {
@@ -83,7 +51,10 @@ class _LoginScreenState extends State<LoginScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(authProvider.errorMessage ?? 'Login gagal! Periksa email dan sandi.'),
+          content: Text(
+            authProvider.errorMessage ??
+                'Login gagal! Periksa email dan password.',
+          ),
           backgroundColor: AppColors.berryRed,
         ),
       );
@@ -106,19 +77,48 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  InputDecoration _fieldDecoration({
+    required IconData icon,
+    required String hint,
+    Widget? suffix,
+  }) {
+    return InputDecoration(
+      prefixIcon: Icon(icon, color: AppColors.textMuted, size: 20),
+      suffixIcon: suffix,
+      hintText: hint,
+      hintStyle: GoogleFonts.plusJakartaSans(
+        fontSize: 14,
+        color: AppColors.textMuted,
+      ),
+      filled: true,
+      fillColor: const Color(0xFFFAFAFA),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFE5E7EB), width: 1.2),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(
+          color: AppColors.roastedCoffee,
+          width: 1.5,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      backgroundColor: AppColors.darkCoffeeHeader, // Rich dark coffee brown matching Image 1
+      backgroundColor: AppColors.darkCoffeeHeader,
       body: Column(
         children: [
-          // Top Header Section (Matching Image 1)
           Container(
             width: double.infinity,
-            height: size.height * 0.25,
+            height: size.height * 0.60,
             color: AppColors.darkCoffeeHeader,
             child: SafeArea(
               bottom: false,
@@ -128,17 +128,33 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      // Logo Icon Header App
                       Container(
-                        width: 44,
-                        height: 44,
+                        width: 80,
+                        height: 80,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.08),
-                          shape: BoxShape.circle,
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: Colors.white,
+                            width: 2.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.15),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                        child: const Icon(
-                          Icons.coffee_rounded,
-                          color: AppColors.activePillCream,
-                          size: 24,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(15),
+                          child: Image.asset(
+                            'public/icons/icon.png',
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -154,7 +170,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Cafeku POS & Kitchen System',
+                        'COFFI POS & Kitchen System',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
@@ -171,362 +187,138 @@ class _LoginScreenState extends State<LoginScreen> {
           // Bottom Curved White Card
           Expanded(
             child: Container(
-              width: double.infinity,
+              width: 450,
               decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
               ),
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(32),
+                ),
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(28, 24, 28, 20),
+                  padding: const EdgeInsets.fromLTRB(28, 28, 28, 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      if (_isPinMode) ...[
-                        // PIN Mode Title & Instruction
-                        Center(
-                          child: Text(
-                            'Masukkan 4 Digit PIN Staf',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.espressoDark,
-                            ),
-                          ),
+                      Text(
+                        'Email',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
                         ),
-                        const SizedBox(height: 4),
-                        Center(
-                          child: Text(
-                            'Pilih digit untuk masuk cepat ke sistem',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 12,
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        textInputAction: TextInputAction.next,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          color: AppColors.textPrimary,
+                        ),
+                        decoration: _fieldDecoration(
+                          icon: Icons.mail_outline_rounded,
+                          hint: 'nama@email.com',
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'Password',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _passwordController,
+                        obscureText: !_isPasswordVisible,
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: (_) => auth.isLoading ? null : _submit(),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          color: AppColors.textPrimary,
+                        ),
+                        decoration: _fieldDecoration(
+                          icon: Icons.lock_outline_rounded,
+                          hint: 'Masukkan password',
+                          suffix: IconButton(
+                            icon: Icon(
+                              _isPasswordVisible
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
                               color: AppColors.textMuted,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-
-                        // PIN Indicator Dots
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(4, (index) {
-                            final filled = index < _enteredPin.length;
-                            return AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              margin: const EdgeInsets.symmetric(horizontal: 10),
-                              width: 18,
-                              height: 18,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: filled ? AppColors.roastedCoffee : Colors.transparent,
-                                border: Border.all(
-                                  color: filled ? AppColors.roastedCoffee : AppColors.borderSubtle,
-                                  width: 2.2,
-                                ),
-                              ),
-                            );
-                          }),
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        // PIN Numpad Grid
-                        Center(
-                          child: Container(
-                            constraints: const BoxConstraints(maxWidth: 290),
-                            child: Column(
-                              children: [
-                                for (var row in [
-                                  ['1', '2', '3'],
-                                  ['4', '5', '6'],
-                                  ['7', '8', '9'],
-                                  ['', '0', 'back'],
-                                ])
-                                  Padding(
-                                    padding: const EdgeInsets.only(bottom: 10),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                      children: row.map((key) {
-                                        if (key.isEmpty) {
-                                          return const SizedBox(width: 72, height: 56);
-                                        }
-                                        if (key == 'back') {
-                                          return SizedBox(
-                                            width: 72,
-                                            height: 56,
-                                            child: InkWell(
-                                              borderRadius: BorderRadius.circular(16),
-                                              onTap: _onPinBackspace,
-                                              child: const Center(
-                                                child: Icon(
-                                                  Icons.backspace_outlined,
-                                                  color: AppColors.espressoDark,
-                                                  size: 22,
-                                                ),
-                                              ),
-                                            ),
-                                          );
-                                        }
-                                        return SizedBox(
-                                          width: 72,
-                                          height: 56,
-                                          child: ElevatedButton(
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: const Color(0xFFFAFAFA),
-                                              foregroundColor: AppColors.espressoDark,
-                                              elevation: 0,
-                                              side: const BorderSide(color: Color(0xFFE5E7EB), width: 1.2),
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(16),
-                                              ),
-                                            ),
-                                            onPressed: () => _onPinDigitPressed(key),
-                                            child: Text(
-                                              key,
-                                              style: GoogleFonts.plusJakartaSans(
-                                                fontSize: 22,
-                                                fontWeight: FontWeight.w800,
-                                              ),
-                                            ),
-                                          ),
-                                        );
-                                      }).toList(),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ] else ...[
-                        // Email Mode
-                        Text(
-                          'Email',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          style: GoogleFonts.plusJakartaSans(fontSize: 14, color: AppColors.textPrimary),
-                          decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.mail_outline_rounded, color: AppColors.textMuted, size: 20),
-                            hintText: 'nama@email.com',
-                            hintStyle: GoogleFonts.plusJakartaSans(fontSize: 14, color: AppColors.textMuted),
-                            filled: true,
-                            fillColor: const Color(0xFFFAFAFA),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(14),
-                              borderSide: const BorderSide(color: Color(0xFFE5E7EB), width: 1.2),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(14),
-                              borderSide: const BorderSide(color: AppColors.roastedCoffee, width: 1.5),
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        Text(
-                          'Password',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _passwordController,
-                          obscureText: !_isPasswordVisible,
-                          style: GoogleFonts.plusJakartaSans(fontSize: 14, color: AppColors.textPrimary),
-                          decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppColors.textMuted, size: 20),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _isPasswordVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                                color: AppColors.textMuted,
-                                size: 20,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _isPasswordVisible = !_isPasswordVisible;
-                                });
-                              },
-                            ),
-                            hintText: 'Masukan Password',
-                            hintStyle: GoogleFonts.plusJakartaSans(fontSize: 14, color: AppColors.textMuted),
-                            filled: true,
-                            fillColor: const Color(0xFFFAFAFA),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(14),
-                              borderSide: const BorderSide(color: Color(0xFFE5E7EB), width: 1.2),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(14),
-                              borderSide: const BorderSide(color: AppColors.roastedCoffee, width: 1.5),
-                            ),
-                          ),
-                        ),
-
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton(
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              size: 20,
                             ),
                             onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Hubungi Administrator untuk reset kata sandi.'),
-                                  backgroundColor: AppColors.roastedCoffee,
-                                ),
-                              );
+                              setState(() {
+                                _isPasswordVisible = !_isPasswordVisible;
+                              });
                             },
-                            child: Text(
-                              'Lupa Password?',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
                           ),
                         ),
-
-                        const SizedBox(height: 24),
-
-                        SizedBox(
-                          height: 52,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.activePillCream,
-                              foregroundColor: AppColors.espressoDark,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                            onPressed: auth.isLoading ? null : _submitEmail,
-                            child: auth.isLoading
-                                ? const SizedBox(
-                                    width: 22,
-                                    height: 22,
-                                    child: CircularProgressIndicator(
-                                      color: AppColors.espressoDark,
-                                      strokeWidth: 2.2,
-                                    ),
-                                  )
-                                : Text(
-                                    'Masuk',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w800,
-                                      color: AppColors.espressoDark,
-                                    ),
-                                  ),
+                      ),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
-                        ),
-                      ],
-
-                      const SizedBox(height: 16),
-
-                      // Toggle between PIN Staf and Email
-                      Center(
-                        child: TextButton.icon(
                           onPressed: () {
-                            setState(() {
-                              _isPinMode = !_isPinMode;
-                              _enteredPin = '';
-                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Hubungi Administrator untuk reset kata sandi.',
+                                ),
+                                backgroundColor: AppColors.roastedCoffee,
+                              ),
+                            );
                           },
-                          icon: Icon(
-                            _isPinMode ? Icons.mail_outline_rounded : Icons.dialpad_rounded,
-                            size: 16,
-                            color: AppColors.roastedCoffee,
-                          ),
-                          label: Text(
-                            _isPinMode ? 'Masuk dengan Email & Password' : '⚡ Masuk dengan PIN Staf',
+                          child: Text(
+                            'Lupa Password?',
                             style: GoogleFonts.plusJakartaSans(
-                              fontSize: 12.5,
+                              fontSize: 13,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.roastedCoffee,
+                              color: AppColors.textPrimary,
                             ),
                           ),
                         ),
                       ),
-
-                      const SizedBox(height: 6),
-
-                      // Quick Demo Account Switcher
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFAFAFA),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFEEEEEE)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(Icons.touch_app_outlined, size: 16, color: AppColors.warmCaramel),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Pilih Akun Demo (Uji Coba Langsung):',
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        height: 52,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.activePillCream,
+                            foregroundColor: AppColors.espressoDark,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          onPressed: auth.isLoading ? null : _submit,
+                          child: auth.isLoading
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    color: AppColors.espressoDark,
+                                    strokeWidth: 2.2,
+                                  ),
+                                )
+                              : Text(
+                                  'Masuk',
                                   style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.textSecondary,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.espressoDark,
                                   ),
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 6,
-                              children: auth.demoStaff.map((staff) {
-                                return ActionChip(
-                                  backgroundColor: Colors.white,
-                                  side: BorderSide(
-                                    color: staff.isAdmin
-                                        ? AppColors.espressoDark.withOpacity(0.3)
-                                        : (staff.isDapur
-                                            ? AppColors.amberOrange.withOpacity(0.3)
-                                            : AppColors.matchaGreen.withOpacity(0.3)),
-                                  ),
-                                  avatar: Icon(
-                                    staff.isAdmin
-                                        ? Icons.admin_panel_settings
-                                        : (staff.isDapur ? Icons.outdoor_grill : Icons.point_of_sale),
-                                    size: 14,
-                                    color: staff.isAdmin
-                                        ? AppColors.espressoDark
-                                        : (staff.isDapur ? AppColors.amberOrange : AppColors.matchaGreen),
-                                  ),
-                                  label: Text(
-                                    '${staff.fullName} (PIN: ${staff.pinCode})',
-                                    style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600),
-                                  ),
-                                  onPressed: () {
-                                    auth.switchDemoUser(staff);
-                                    _navigateForRole(staff);
-                                  },
-                                );
-                              }).toList(),
-                            ),
-                          ],
                         ),
                       ),
                     ],
