@@ -47,6 +47,11 @@ class AuthProvider extends ChangeNotifier {
     );
     notifyListeners();
   }
+  
+  void deleteStaff(String staffId) {
+    _authService.deleteStaff(staffId);
+    notifyListeners();
+  }
 
   Future<void> logout() async {
     await _authService.signOut();

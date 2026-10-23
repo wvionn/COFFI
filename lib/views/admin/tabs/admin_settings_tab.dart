@@ -6,6 +6,7 @@ import '../../../core/constants/supabase_config.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../services/supabase_service.dart';
 import '../../auth/login_screen.dart';
+import '../../../models/profile_model.dart';
 
 class AdminSettingsTab extends StatefulWidget {
   const AdminSettingsTab({super.key});
@@ -140,6 +141,20 @@ class _AdminSettingsTabState extends State<AdminSettingsTab> {
                                 ),
                               ),
                             ),
+                            // ===== TAMBAHKAN TOMBOL INI =====
+                            const SizedBox(width: 4),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.delete_outline_rounded,
+                                color: AppColors.berryRed,
+                                size: 20,
+                              ),
+                              tooltip: 'Hapus Staf',
+                              splashRadius: 20,
+                              constraints: const BoxConstraints(),
+                              padding: const EdgeInsets.all(6),
+                              onPressed: () => _confirmDeleteStaff(context, auth, staff),
+                            ),
                           ],
                         ),
                       );
@@ -230,101 +245,166 @@ class _AdminSettingsTabState extends State<AdminSettingsTab> {
     );
   }
 
-  // ==========================================
-  // MODAL 2: SUPABASE & DATABASE CONFIG
-  // ==========================================
-  void _openSupabaseModule(BuildContext context) {
-    showModalBottomSheet(
+//DELETE STAF DI SINI
+  void _confirmDeleteStaff(BuildContext context, AuthProvider auth, ProfileModel staff) {
+    // Cegah admin menghapus akunnya sendiri yang sedang aktif digunakan
+    if (auth.currentProfile?.id == staff.id) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Anda tidak dapat menghapus akun Anda sendiri yang sedang aktif!'),
+          backgroundColor: AppColors.amberOrange,
+        ),
+      );
+      return;
+    }
+
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setState) {
-          final isConnected = SupabaseService.instance.isConnected;
-          return Container(
-            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildModalHeader(
-                    title: 'Koneksi Database & Cloud',
-                    subtitle: isConnected ? 'Supabase Terhubung Live' : 'Mode Offline / Local Fallback',
-                    icon: Icons.cloud_sync_rounded,
-                    iconColor: isConnected ? AppColors.matchaGreen : AppColors.amberOrange,
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isConnected ? AppColors.matchaGreen.withOpacity(0.1) : AppColors.amberOrange.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          isConnected ? Icons.check_circle : Icons.warning_amber_rounded,
-                          color: isConnected ? AppColors.matchaGreen : AppColors.amberOrange,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            isConnected
-                                ? 'Database live online. Pesanan dan katalog tersinkron realtime.'
-                                : 'Aplikasi menggunakan penyimpanan offline lokal.',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 12,
-                              color: isConnected ? AppColors.matchaGreen : AppColors.amberOrange,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text('Supabase Project URL:', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 4),
-                  TextField(controller: _urlController, decoration: const InputDecoration(hintText: 'https://xyz.supabase.co')),
-                  const SizedBox(height: 14),
-                  Text('Supabase Anon Key:', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 4),
-                  TextField(controller: _anonKeyController, maxLines: 2, decoration: const InputDecoration(hintText: 'eyJhbGciOi...')),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.roastedCoffee),
-                      onPressed: () async {
-                        await SupabaseConfig.saveConfig(
-                          _urlController.text.trim(),
-                          _anonKeyController.text.trim(),
-                        );
-                        await SupabaseService.instance.initialize();
-                        Navigator.pop(ctx);
-                        this.setState(() {});
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Konfigurasi database berhasil disimpan!'), backgroundColor: AppColors.matchaGreen),
-                        );
-                      },
-                      child: const Text('Simpan & Uji Koneksi'),
-                    ),
-                  ),
-                ],
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Hapus Akun Staf',
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 16),
+        ),
+        content: Text(
+          'Apakah Anda yakin ingin menghapus "${staff.fullName}" (${staff.role.toUpperCase()})?',
+          style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Batal',
+              style: GoogleFonts.plusJakartaSans(
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w600,
               ),
             ),
-          );
-        },
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.berryRed,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              // Langsung panggil tanpa await
+              auth.deleteStaff(staff.id);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Staf "${staff.fullName}" berhasil dihapus.'),
+                  backgroundColor: AppColors.berryRed,
+                ),
+              );
+            },
+            child: Text(
+              'Hapus',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
+
+  // ==========================================
+  // MODAL 2: SUPABASE & DATABASE CONFIG
+  // ==========================================
+  // void _openSupabaseModule(BuildContext context) {
+  //   showModalBottomSheet(
+  //     context: context,
+  //     isScrollControlled: true,
+  //     backgroundColor: Colors.transparent,
+  //     builder: (ctx) => StatefulBuilder(
+  //       builder: (ctx, setState) {
+  //         final isConnected = SupabaseService.instance.isConnected;
+  //         return Container(
+  //           padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+  //           decoration: const BoxDecoration(
+  //             color: Colors.white,
+  //             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+  //           ),
+  //           child: SingleChildScrollView(
+  //             padding: const EdgeInsets.all(20),
+  //             child: Column(
+  //               crossAxisAlignment: CrossAxisAlignment.start,
+  //               mainAxisSize: MainAxisSize.min,
+  //               children: [
+  //                 _buildModalHeader(
+  //                   title: 'Koneksi Database & Cloud',
+  //                   subtitle: isConnected ? 'Supabase Terhubung Live' : 'Mode Offline / Local Fallback',
+  //                   icon: Icons.cloud_sync_rounded,
+  //                   iconColor: isConnected ? AppColors.matchaGreen : AppColors.amberOrange,
+  //                 ),
+  //                 Container(
+  //                   padding: const EdgeInsets.all(12),
+  //                   decoration: BoxDecoration(
+  //                     color: isConnected ? AppColors.matchaGreen.withOpacity(0.1) : AppColors.amberOrange.withOpacity(0.1),
+  //                     borderRadius: BorderRadius.circular(12),
+  //                   ),
+  //                   child: Row(
+  //                     children: [
+  //                       Icon(
+  //                         isConnected ? Icons.check_circle : Icons.warning_amber_rounded,
+  //                         color: isConnected ? AppColors.matchaGreen : AppColors.amberOrange,
+  //                         size: 20,
+  //                       ),
+  //                       const SizedBox(width: 8),
+  //                       Expanded(
+  //                         child: Text(
+  //                           isConnected
+  //                               ? 'Database live online. Pesanan dan katalog tersinkron realtime.'
+  //                               : 'Aplikasi menggunakan penyimpanan offline lokal.',
+  //                           style: GoogleFonts.plusJakartaSans(
+  //                             fontSize: 12,
+  //                             color: isConnected ? AppColors.matchaGreen : AppColors.amberOrange,
+  //                             fontWeight: FontWeight.w600,
+  //                           ),
+  //                         ),
+  //                       ),
+  //                     ],
+  //                   ),
+  //                 ),
+  //                 const SizedBox(height: 16),
+  //                 Text('Supabase Project URL:', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold)),
+  //                 const SizedBox(height: 4),
+  //                 TextField(controller: _urlController, decoration: const InputDecoration(hintText: 'https://xyz.supabase.co')),
+  //                 const SizedBox(height: 14),
+  //                 Text('Supabase Anon Key:', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold)),
+  //                 const SizedBox(height: 4),
+  //                 TextField(controller: _anonKeyController, maxLines: 2, decoration: const InputDecoration(hintText: 'eyJhbGciOi...')),
+  //                 const SizedBox(height: 20),
+  //                 SizedBox(
+  //                   width: double.infinity,
+  //                   height: 48,
+  //                   child: ElevatedButton(
+  //                     style: ElevatedButton.styleFrom(backgroundColor: AppColors.roastedCoffee),
+  //                     onPressed: () async {
+  //                       await SupabaseConfig.saveConfig(
+  //                         _urlController.text.trim(),
+  //                         _anonKeyController.text.trim(),
+  //                       );
+  //                       await SupabaseService.instance.initialize();
+  //                       Navigator.pop(ctx);
+  //                       this.setState(() {});
+  //                       ScaffoldMessenger.of(context).showSnackBar(
+  //                         const SnackBar(content: Text('Konfigurasi database berhasil disimpan!'), backgroundColor: AppColors.matchaGreen),
+  //                       );
+  //                     },
+  //                     child: const Text('Simpan & Uji Koneksi'),
+  //                   ),
+  //                 ),
+  //               ],
+  //             ),
+  //           ),
+  //         );
+  //       },
+  //     ),
+  //   );
+  // }
 
   // ==========================================
   // MODAL 3: PROFIL KAFE & STRUK
@@ -400,242 +480,242 @@ class _AdminSettingsTabState extends State<AdminSettingsTab> {
     );
   }
 
-  // ==========================================
-  // MODAL 4: PAJAK & PB1
-  // ==========================================
-  void _openTaxModule(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setLocalState) => Container(
-          padding: const EdgeInsets.all(24),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildModalHeader(
-                title: 'Pengaturan Pajak & PB1 Resto',
-                subtitle: 'Ketetapan perpajakan daerah untuk pesanan',
-                icon: Icons.receipt_long_rounded,
-                iconColor: AppColors.coldBrewBlue,
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                activeColor: AppColors.roastedCoffee,
-                title: Text('Aktifkan Pajak PB1 (10%)', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
-                subtitle: Text('Otomatis dihitung pada ringkasan pembayaran kasir', style: GoogleFonts.plusJakartaSans(fontSize: 12)),
-                value: _pb1Enabled,
-                onChanged: (val) {
-                  setLocalState(() => _pb1Enabled = val);
-                  setState(() => _pb1Enabled = val);
-                },
-              ),
-              const Divider(height: 24),
-              Text(
-                'Catatan: Pajak Restoran (PB1) sebesar 10% diberlakukan sesuai peraturan perpajakan kuliner lokal dan otomatis disertakan di setiap struk.',
-                style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.textMuted),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Selesai'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  // // ==========================================
+  // // MODAL 4: PAJAK & PB1
+  // // ==========================================
+  // void _openTaxModule(BuildContext context) {
+  //   showModalBottomSheet(
+  //     context: context,
+  //     backgroundColor: Colors.transparent,
+  //     builder: (ctx) => StatefulBuilder(
+  //       builder: (ctx, setLocalState) => Container(
+  //         padding: const EdgeInsets.all(24),
+  //         decoration: const BoxDecoration(
+  //           color: Colors.white,
+  //           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+  //         ),
+  //         child: Column(
+  //           mainAxisSize: MainAxisSize.min,
+  //           crossAxisAlignment: CrossAxisAlignment.start,
+  //           children: [
+  //             _buildModalHeader(
+  //               title: 'Pengaturan Pajak & PB1 Resto',
+  //               subtitle: 'Ketetapan perpajakan daerah untuk pesanan',
+  //               icon: Icons.receipt_long_rounded,
+  //               iconColor: AppColors.coldBrewBlue,
+  //             ),
+  //             SwitchListTile(
+  //               contentPadding: EdgeInsets.zero,
+  //               activeColor: AppColors.roastedCoffee,
+  //               title: Text('Aktifkan Pajak PB1 (10%)', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
+  //               subtitle: Text('Otomatis dihitung pada ringkasan pembayaran kasir', style: GoogleFonts.plusJakartaSans(fontSize: 12)),
+  //               value: _pb1Enabled,
+  //               onChanged: (val) {
+  //                 setLocalState(() => _pb1Enabled = val);
+  //                 setState(() => _pb1Enabled = val);
+  //               },
+  //             ),
+  //             const Divider(height: 24),
+  //             Text(
+  //               'Catatan: Pajak Restoran (PB1) sebesar 10% diberlakukan sesuai peraturan perpajakan kuliner lokal dan otomatis disertakan di setiap struk.',
+  //               style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.textMuted),
+  //             ),
+  //             const SizedBox(height: 20),
+  //             SizedBox(
+  //               width: double.infinity,
+  //               child: ElevatedButton(
+  //                 onPressed: () => Navigator.pop(ctx),
+  //                 child: const Text('Selesai'),
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
 
   // ==========================================
   // MODAL 5: PRINTER KASIR
   // ==========================================
-  void _openPrinterModule(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setLocalState) => Container(
-          padding: const EdgeInsets.all(24),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildModalHeader(
-                title: 'Format Printer & Struk',
-                subtitle: 'Konfigurasi printer thermal Bluetooth / USB',
-                icon: Icons.print_rounded,
-                iconColor: const Color(0xFF6366F1),
-              ),
-              Text('Pilih Ukuran Kertas Thermal:', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: ChoiceChip(
-                      label: const Text('58 mm (Standar)'),
-                      selected: _printerSize == '58mm',
-                      selectedColor: AppColors.activePillCream,
-                      onSelected: (val) {
-                        setLocalState(() => _printerSize = '58mm');
-                        setState(() => _printerSize = '58mm');
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ChoiceChip(
-                      label: const Text('80 mm (Besar)'),
-                      selected: _printerSize == '80mm',
-                      selectedColor: AppColors.activePillCream,
-                      onSelected: (val) {
-                        setLocalState(() => _printerSize = '80mm');
-                        setState(() => _printerSize = '80mm');
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.bluetooth, color: AppColors.coldBrewBlue),
-                title: const Text('Cari Printer Bluetooth'),
-                subtitle: const Text('Status: Siap dipasangkan dengan Mini POS'),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Memindai perangkat printer Bluetooth thermal terdekat...')),
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Terapkan Pengaturan Printer'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  // void _openPrinterModule(BuildContext context) {
+  //   showModalBottomSheet(
+  //     context: context,
+  //     backgroundColor: Colors.transparent,
+  //     builder: (ctx) => StatefulBuilder(
+  //       builder: (ctx, setLocalState) => Container(
+  //         padding: const EdgeInsets.all(24),
+  //         decoration: const BoxDecoration(
+  //           color: Colors.white,
+  //           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+  //         ),
+  //         child: Column(
+  //           mainAxisSize: MainAxisSize.min,
+  //           crossAxisAlignment: CrossAxisAlignment.start,
+  //           children: [
+  //             _buildModalHeader(
+  //               title: 'Format Printer & Struk',
+  //               subtitle: 'Konfigurasi printer thermal Bluetooth / USB',
+  //               icon: Icons.print_rounded,
+  //               iconColor: const Color(0xFF6366F1),
+  //             ),
+  //             Text('Pilih Ukuran Kertas Thermal:', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700)),
+  //             const SizedBox(height: 10),
+  //             Row(
+  //               children: [
+  //                 Expanded(
+  //                   child: ChoiceChip(
+  //                     label: const Text('58 mm (Standar)'),
+  //                     selected: _printerSize == '58mm',
+  //                     selectedColor: AppColors.activePillCream,
+  //                     onSelected: (val) {
+  //                       setLocalState(() => _printerSize = '58mm');
+  //                       setState(() => _printerSize = '58mm');
+  //                     },
+  //                   ),
+  //                 ),
+  //                 const SizedBox(width: 10),
+  //                 Expanded(
+  //                   child: ChoiceChip(
+  //                     label: const Text('80 mm (Besar)'),
+  //                     selected: _printerSize == '80mm',
+  //                     selectedColor: AppColors.activePillCream,
+  //                     onSelected: (val) {
+  //                       setLocalState(() => _printerSize = '80mm');
+  //                       setState(() => _printerSize = '80mm');
+  //                     },
+  //                   ),
+  //                 ),
+  //               ],
+  //             ),
+  //             const SizedBox(height: 16),
+  //             ListTile(
+  //               contentPadding: EdgeInsets.zero,
+  //               leading: const Icon(Icons.bluetooth, color: AppColors.coldBrewBlue),
+  //               title: const Text('Cari Printer Bluetooth'),
+  //               subtitle: const Text('Status: Siap dipasangkan dengan Mini POS'),
+  //               trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+  //               onTap: () {
+  //                 ScaffoldMessenger.of(context).showSnackBar(
+  //                   const SnackBar(content: Text('Memindai perangkat printer Bluetooth thermal terdekat...')),
+  //                 );
+  //               },
+  //             ),
+  //             const SizedBox(height: 16),
+  //             SizedBox(
+  //               width: double.infinity,
+  //               child: ElevatedButton(
+  //                 onPressed: () => Navigator.pop(ctx),
+  //                 child: const Text('Terapkan Pengaturan Printer'),
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
 
 
 
   // ==========================================
   // MODAL 7: INFO SISTEM & DIAGNOSTIK
   // ==========================================
-  void _openSystemInfoModule(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        height: MediaQuery.of(context).size.height * 0.72,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          children: [
-            _buildModalHeader(
-              title: 'Info Sistem & Diagnostik',
-              subtitle: 'Spesifikasi & status operasional POS',
-              icon: Icons.info_outline_rounded,
-              iconColor: const Color(0xFF64748B),
-            ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-                children: [
-                  _buildInfoTile('Aplikasi', 'COFFI POS Mobile v1.0.0'),
-                  _buildInfoTile('Mode Pelayanan', 'Counter Queue & Name Calling'),
-                  _buildInfoTile(
-                    'Database Cloud',
-                    SupabaseService.instance.isConnected ? 'Supabase Connected' : 'Mode Offline Siap',
-                  ),
-                  _buildInfoTile('Format Struk', 'Thermal $_printerSize (ESC/POS)'),
-                  _buildInfoTile('Pajak PB1', _pb1Enabled ? 'Aktif (10%)' : 'Non-Aktif'),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF0FDF4),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.matchaGreen.withOpacity(0.3)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.check_circle_rounded, color: AppColors.matchaGreen, size: 24),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Sistem Berjalan Normal',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 13,
-                                  color: AppColors.espressoDark,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Seluruh modul tersinkronisasi dengan database lokal & cloud.',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 11,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Cache data lokal berhasil dibersihkan!'),
-                          backgroundColor: AppColors.matchaGreen,
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.cleaning_services_rounded, size: 18),
-                    label: const Text('Bersihkan Cache Lokal'),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // void _openSystemInfoModule(BuildContext context) {
+  //   showModalBottomSheet(
+  //     context: context,
+  //     isScrollControlled: true,
+  //     backgroundColor: Colors.transparent,
+  //     builder: (ctx) => Container(
+  //       height: MediaQuery.of(context).size.height * 0.72,
+  //       decoration: const BoxDecoration(
+  //         color: Colors.white,
+  //         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+  //       ),
+  //       child: Column(
+  //         children: [
+  //           _buildModalHeader(
+  //             title: 'Info Sistem & Diagnostik',
+  //             subtitle: 'Spesifikasi & status operasional POS',
+  //             icon: Icons.info_outline_rounded,
+  //             iconColor: const Color(0xFF64748B),
+  //           ),
+  //           Expanded(
+  //             child: ListView(
+  //               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+  //               children: [
+  //                 _buildInfoTile('Aplikasi', 'COFFI POS Mobile v1.0.0'),
+  //                 _buildInfoTile('Mode Pelayanan', 'Counter Queue & Name Calling'),
+  //                 _buildInfoTile(
+  //                   'Database Cloud',
+  //                   SupabaseService.instance.isConnected ? 'Supabase Connected' : 'Mode Offline Siap',
+  //                 ),
+  //                 _buildInfoTile('Format Struk', 'Thermal $_printerSize (ESC/POS)'),
+  //                 _buildInfoTile('Pajak PB1', _pb1Enabled ? 'Aktif (10%)' : 'Non-Aktif'),
+  //                 const SizedBox(height: 16),
+  //                 Container(
+  //                   padding: const EdgeInsets.all(14),
+  //                   decoration: BoxDecoration(
+  //                     color: const Color(0xFFF0FDF4),
+  //                     borderRadius: BorderRadius.circular(14),
+  //                     border: Border.all(color: AppColors.matchaGreen.withOpacity(0.3)),
+  //                   ),
+  //                   child: Row(
+  //                     children: [
+  //                       const Icon(Icons.check_circle_rounded, color: AppColors.matchaGreen, size: 24),
+  //                       const SizedBox(width: 12),
+  //                       Expanded(
+  //                         child: Column(
+  //                           crossAxisAlignment: CrossAxisAlignment.start,
+  //                           children: [
+  //                             Text(
+  //                               'Sistem Berjalan Normal',
+  //                               style: GoogleFonts.plusJakartaSans(
+  //                                 fontWeight: FontWeight.w800,
+  //                                 fontSize: 13,
+  //                                 color: AppColors.espressoDark,
+  //                               ),
+  //                             ),
+  //                             const SizedBox(height: 2),
+  //                             Text(
+  //                               'Seluruh modul tersinkronisasi dengan database lokal & cloud.',
+  //                               style: GoogleFonts.plusJakartaSans(
+  //                                 fontSize: 11,
+  //                                 color: AppColors.textSecondary,
+  //                               ),
+  //                             ),
+  //                           ],
+  //                         ),
+  //                       ),
+  //                     ],
+  //                   ),
+  //                 ),
+  //                 const SizedBox(height: 16),
+  //                 OutlinedButton.icon(
+  //                   style: OutlinedButton.styleFrom(
+  //                     padding: const EdgeInsets.symmetric(vertical: 12),
+  //                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  //                   ),
+  //                   onPressed: () {
+  //                     Navigator.pop(ctx);
+  //                     ScaffoldMessenger.of(context).showSnackBar(
+  //                       const SnackBar(
+  //                         content: Text('Cache data lokal berhasil dibersihkan!'),
+  //                         backgroundColor: AppColors.matchaGreen,
+  //                       ),
+  //                     );
+  //                   },
+  //                   icon: const Icon(Icons.cleaning_services_rounded, size: 18),
+  //                   label: const Text('Bersihkan Cache Lokal'),
+  //                 ),
+  //               ],
+  //             ),
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
 
   Widget _buildInfoTile(String label, String value) {
     return Container(
@@ -876,14 +956,14 @@ class _AdminSettingsTabState extends State<AdminSettingsTab> {
                   bgColor: const Color(0xFFFFF7ED),
                   onTap: () => _openStaffModule(context),
                 ),
-                _buildGridCard(
-                  title: 'Koneksi Cloud',
-                  subtitle: SupabaseService.instance.isConnected ? 'Supabase Live' : 'Mode Offline',
-                  icon: Icons.cloud_sync_rounded,
-                  iconColor: SupabaseService.instance.isConnected ? AppColors.matchaGreen : AppColors.amberOrange,
-                  bgColor: SupabaseService.instance.isConnected ? const Color(0xFFF0FDF4) : const Color(0xFFFFFBEB),
-                  onTap: () => _openSupabaseModule(context),
-                ),
+                // _buildGridCard(
+                //   title: 'Koneksi Cloud',
+                //   subtitle: SupabaseService.instance.isConnected ? 'Supabase Live' : 'Mode Offline',
+                //   icon: Icons.cloud_sync_rounded,
+                //   iconColor: SupabaseService.instance.isConnected ? AppColors.matchaGreen : AppColors.amberOrange,
+                //   bgColor: SupabaseService.instance.isConnected ? const Color(0xFFF0FDF4) : const Color(0xFFFFFBEB),
+                //   onTap: () => _openSupabaseModule(context),
+                // ),
                 _buildGridCard(
                   title: 'Profil Kafe & Struk',
                   subtitle: _cafeName,
@@ -892,30 +972,30 @@ class _AdminSettingsTabState extends State<AdminSettingsTab> {
                   bgColor: const Color(0xFFFAF5F0),
                   onTap: () => _openCafeProfileModule(context),
                 ),
-                _buildGridCard(
-                  title: 'Pajak & PB1 Resto',
-                  subtitle: _pb1Enabled ? 'PB1 10% Aktif' : 'Non-Aktif',
-                  icon: Icons.receipt_long_rounded,
-                  iconColor: AppColors.coldBrewBlue,
-                  bgColor: const Color(0xFFEFF6FF),
-                  onTap: () => _openTaxModule(context),
-                ),
-                _buildGridCard(
-                  title: 'Printer Struk Kasir',
-                  subtitle: 'Format $_printerSize Thermal',
-                  icon: Icons.print_rounded,
-                  iconColor: const Color(0xFF6366F1),
-                  bgColor: const Color(0xFFEEF2FF),
-                  onTap: () => _openPrinterModule(context),
-                ),
-                _buildGridCard(
-                  title: 'Info Sistem',
-                  subtitle: 'v1.0.0 • Counter POS',
-                  icon: Icons.info_outline_rounded,
-                  iconColor: const Color(0xFF64748B),
-                  bgColor: const Color(0xFFF1F5F9),
-                  onTap: () => _openSystemInfoModule(context),
-                ),
+                // _buildGridCard(
+                //   title: 'Pajak & PB1 Resto',
+                //   subtitle: _pb1Enabled ? 'PB1 10% Aktif' : 'Non-Aktif',
+                //   icon: Icons.receipt_long_rounded,
+                //   iconColor: AppColors.coldBrewBlue,
+                //   bgColor: const Color(0xFFEFF6FF),
+                //   onTap: () => _openTaxModule(context),
+                // ),
+                // _buildGridCard(
+                //   title: 'Printer Struk Kasir',
+                //   subtitle: 'Format $_printerSize Thermal',
+                //   icon: Icons.print_rounded,
+                //   iconColor: const Color(0xFF6366F1),
+                //   bgColor: const Color(0xFFEEF2FF),
+                //   onTap: () => _openPrinterModule(context),
+                // ),
+                // _buildGridCard(
+                //   title: 'Info Sistem',
+                //   subtitle: 'v1.0.0 • Counter POS',
+                //   icon: Icons.info_outline_rounded,
+                //   iconColor: const Color(0xFF64748B),
+                //   bgColor: const Color(0xFFF1F5F9),
+                //   onTap: () => _openSystemInfoModule(context),
+                // ),
               ],
             ),
 
