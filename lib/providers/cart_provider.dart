@@ -5,20 +5,25 @@ import '../models/product_model.dart';
 import '../models/table_model.dart';
 
 class CartProvider extends ChangeNotifier {
-  String _orderType = 'dine_in'; // 'dine_in' or 'takeaway'
+  String _orderType = 'dine_in'; // 'dine_in', 'takeaway', 'delivery'
   TableModel? _selectedTable;
   String _customerName = '';
   String _generalNotes = '';
+  String _deliveryAddress = '';
+  String _customerPhone = '';
 
   final List<OrderItemModel> _items = [];
 
   String get orderType => _orderType;
   bool get isDineIn => _orderType == 'dine_in';
   bool get isTakeaway => _orderType == 'takeaway';
+  bool get isDelivery => _orderType == 'delivery';
 
   TableModel? get selectedTable => _selectedTable;
   String get customerName => _customerName;
   String get generalNotes => _generalNotes;
+  String get deliveryAddress => _deliveryAddress;
+  String get customerPhone => _customerPhone;
 
   List<OrderItemModel> get items => List.unmodifiable(_items);
 
@@ -32,7 +37,7 @@ class CartProvider extends ChangeNotifier {
 
   void setOrderType(String type) {
     _orderType = type;
-    if (_orderType == 'takeaway') {
+    if (_orderType != 'dine_in') {
       _selectedTable = null;
     }
     notifyListeners();
@@ -50,6 +55,16 @@ class CartProvider extends ChangeNotifier {
 
   void setGeneralNotes(String notes) {
     _generalNotes = notes;
+    notifyListeners();
+  }
+
+  void setDeliveryAddress(String address) {
+    _deliveryAddress = address;
+    notifyListeners();
+  }
+
+  void setCustomerPhone(String phone) {
+    _customerPhone = phone;
     notifyListeners();
   }
 
@@ -113,7 +128,8 @@ class CartProvider extends ChangeNotifier {
     _items.clear();
     _customerName = '';
     _generalNotes = '';
-    // Table remains selected if dine-in for cashier convenience
+    _deliveryAddress = '';
+    _customerPhone = '';
     notifyListeners();
   }
 
@@ -122,6 +138,8 @@ class CartProvider extends ChangeNotifier {
     _selectedTable = null;
     _customerName = '';
     _generalNotes = '';
+    _deliveryAddress = '';
+    _customerPhone = '';
     _orderType = 'dine_in';
     notifyListeners();
   }

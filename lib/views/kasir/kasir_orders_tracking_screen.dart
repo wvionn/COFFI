@@ -13,7 +13,7 @@ class KasirOrdersTrackingScreen extends StatefulWidget {
 }
 
 class _KasirOrdersTrackingScreenState extends State<KasirOrdersTrackingScreen> {
-  String _selectedFilter = 'Semua'; // 'Semua', 'Sedang Diracik', 'Siap Ambil'
+  String _selectedFilter = 'Semua'; // 'Semua', 'Perlu Validasi', 'Sedang Diracik', 'Siap Ambil'
 
   @override
   Widget build(BuildContext context) {
@@ -21,39 +21,55 @@ class _KasirOrdersTrackingScreenState extends State<KasirOrdersTrackingScreen> {
     final allOrders = orderProvider.orders.where((o) => !o.isCancelled && !o.isCompleted).toList();
 
     List<OrderModel> displayedOrders;
-    if (_selectedFilter == 'Sedang Diracik') {
+    if (_selectedFilter == 'Perlu Validasi') {
+      displayedOrders = allOrders.where((o) => o.isWaitingValidation).toList();
+    } else if (_selectedFilter == 'Sedang Diracik') {
       displayedOrders = allOrders.where((o) => o.isProcessing || o.isPending).toList();
     } else if (_selectedFilter == 'Siap Ambil') {
-      displayedOrders = allOrders.where((o) => o.isReady).toList();
+      displayedOrders = allOrders.where((o) => o.isReady || o.isDelivering).toList();
     } else {
       displayedOrders = allOrders;
     }
+
+    final waitingCount = orderProvider.waitingValidationOrders.length;
 
     return Scaffold(
       backgroundColor: AppColors.softSand,
       appBar: AppBar(
         title: Text(
-          'LIVE STATUS ANTREAN PESANAN',
+          'LIVE STATUS ANTREAN & VALIDASI',
           style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 15),
         ),
       ),
       body: Column(
         children: [
-          // Filter Tabs
+          // Filter Tabs (Scrollable)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             color: Colors.white,
-            child: Row(
-              children: [
-                _buildFilterChip('Semua (${allOrders.length})', 'Semua'),
-                const SizedBox(width: 8),
-                _buildFilterChip(
-                  'Sedang Diracik (${orderProvider.newKitchenOrders.length + orderProvider.inProgressKitchenOrders.length})',
-                  'Sedang Diracik',
-                ),
-                const SizedBox(width: 8),
-                _buildFilterChip('Siap Ambil (${orderProvider.readyKitchenOrders.length})', 'Siap Ambil'),
-              ],
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildFilterChip('Semua (${allOrders.length})', 'Semua'),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(
+                    '⚡ Perlu Validasi ($waitingCount)',
+                    'Perlu Validasi',
+                    hasAlert: waitingCount > 0,
+                  ),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(
+                    'Sedang Diracik (${orderProvider.newKitchenOrders.length + orderProvider.inProgressKitchenOrders.length})',
+                    'Sedang Diracik',
+                  ),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(
+                    'Siap Ambil/Antar (${orderProvider.readyKitchenOrders.length + orderProvider.deliveringOrders.length})',
+                    'Siap Ambil',
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -76,7 +92,7 @@ class _KasirOrdersTrackingScreenState extends State<KasirOrdersTrackingScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Semua pesanan pelanggan sudah selesai diambil.',
+                          'Semua pesanan pelanggan sudah selesai.',
                           style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.textMuted),
                         ),
                       ],
@@ -92,17 +108,25 @@ class _KasirOrdersTrackingScreenState extends State<KasirOrdersTrackingScreen> {
                       String statusText;
                       IconData statusIcon;
 
-                      if (order.isReady) {
+                      if (order.isWaitingValidation) {
+                        statusColor = AppColors.berryRed;
+                        statusText = '🟠 PERLU VALIDASI (Online)';
+                        statusIcon = Icons.notifications_active_rounded;
+                      } else if (order.isDelivering) {
+                        statusColor = AppColors.coldBrewBlue;
+                        statusText = '🛵 SEDANG DIANTAR KURIR';
+                        statusIcon = Icons.delivery_dining;
+                      } else if (order.isReady) {
                         statusColor = AppColors.matchaGreen;
-                        statusText = '🟢 SIAP DIAMBIL';
+                        statusText = order.isDelivery ? '🟢 SIAP DIANTAR' : '🟢 SIAP DIAMBIL';
                         statusIcon = Icons.check_circle_rounded;
                       } else if (order.isProcessing) {
                         statusColor = AppColors.amberOrange;
                         statusText = '🟡 SEDANG DIRACIK BARISTA';
                         statusIcon = Icons.soup_kitchen;
                       } else {
-                        statusColor = AppColors.coldBrewBlue;
-                        statusText = '⚪ MENUNGGU ANTREAN';
+                        statusColor = AppColors.roastedCoffee;
+                        statusText = '⚪ MENUNGGU DIRACIK DAPUR';
                         statusIcon = Icons.hourglass_top;
                       }
 
@@ -113,14 +137,18 @@ class _KasirOrdersTrackingScreenState extends State<KasirOrdersTrackingScreen> {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(18),
                           border: Border.all(
-                            color: order.isReady ? AppColors.matchaGreen : const Color(0xFFE5E7EB),
-                            width: order.isReady ? 2 : 1,
+                            color: order.isWaitingValidation
+                                ? AppColors.berryRed
+                                : (order.isReady ? AppColors.matchaGreen : const Color(0xFFE5E7EB)),
+                            width: (order.isWaitingValidation || order.isReady) ? 2 : 1,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: order.isReady
-                                  ? AppColors.matchaGreen.withOpacity(0.12)
-                                  : Colors.black.withOpacity(0.04),
+                              color: order.isWaitingValidation
+                                  ? AppColors.berryRed.withOpacity(0.08)
+                                  : (order.isReady
+                                      ? AppColors.matchaGreen.withOpacity(0.12)
+                                      : Colors.black.withOpacity(0.04)),
                               blurRadius: 10,
                               offset: const Offset(0, 3),
                             ),
@@ -129,6 +157,7 @@ class _KasirOrdersTrackingScreenState extends State<KasirOrdersTrackingScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            // Status Header
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -165,7 +194,7 @@ class _KasirOrdersTrackingScreenState extends State<KasirOrdersTrackingScreen> {
                             ),
                             const SizedBox(height: 12),
 
-                            // Customer Name prominently displayed
+                            // Customer Name & Order Type Badge
                             Row(
                               children: [
                                 Container(
@@ -184,25 +213,59 @@ class _KasirOrdersTrackingScreenState extends State<KasirOrdersTrackingScreen> {
                                       Text(
                                         'Atas Nama: Kak ${order.customerName?.isNotEmpty == true ? order.customerName : "Pelanggan"}',
                                         style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 16,
+                                          fontSize: 15,
                                           fontWeight: FontWeight.w900,
                                           color: AppColors.espressoDark,
                                         ),
                                       ),
-                                      Text(
-                                        'No. Antrean: #${order.invoiceNumber}',
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 11,
-                                          color: AppColors.textMuted,
-                                          fontWeight: FontWeight.w600,
-                                        ),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            '#${order.invoiceNumber} • ',
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 11,
+                                              color: AppColors.textMuted,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                            decoration: BoxDecoration(
+                                              color: order.isDelivery
+                                                  ? const Color(0xFFE0F2FE)
+                                                  : (order.isDineIn ? const Color(0xFFFEF3C7) : const Color(0xFFF3E8FF)),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              order.isDelivery
+                                                  ? '🛵 DELIVERY'
+                                                  : (order.isDineIn ? '🍽️ MEJA ${order.tableNumber ?? "-"}' : '🛍️ TAKEAWAY'),
+                                              style: GoogleFonts.plusJakartaSans(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w800,
+                                                color: order.isDelivery
+                                                    ? const Color(0xFF0369A1)
+                                                    : (order.isDineIn ? const Color(0xFFB45309) : const Color(0xFF7E22CE)),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
+                                  ),
+                                ),
+                                Text(
+                                  'Rp ${order.totalAmount.toInt()}',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w900,
+                                    color: AppColors.roastedCoffee,
                                   ),
                                 ),
                               ],
                             ),
 
+                            // Items List
                             const SizedBox(height: 10),
                             Text(
                               order.items.map((i) => '${i.quantity}x ${i.productName}').join(', '),
@@ -212,9 +275,161 @@ class _KasirOrdersTrackingScreenState extends State<KasirOrdersTrackingScreen> {
                               ),
                             ),
 
-                            // Direct "Pesanan Selesai" button when ready
+                            // Notes / Address if any
+                            if (order.notes != null && order.notes!.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                                ),
+                                child: Text(
+                                  order.notes!,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 11.5,
+                                    color: AppColors.textPrimary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+
+                            // ACTION BUTTONS
+
+                            // 1. Perlu Validasi Action Buttons
+                            if (order.isWaitingValidation) ...[
+                              const SizedBox(height: 14),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    flex: 3,
+                                    child: SizedBox(
+                                      height: 44,
+                                      child: ElevatedButton.icon(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppColors.matchaGreen,
+                                          foregroundColor: Colors.white,
+                                          elevation: 0,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                        ),
+                                        onPressed: () async {
+                                          await orderProvider.updateStatus(order.id, 'pending');
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text('Pesanan Kak ${order.customerName ?? "Pelanggan"} divalidasi & masuk ke Dapur!'),
+                                                backgroundColor: AppColors.matchaGreen,
+                                              ),
+                                            );
+                                          }
+                                        },
+                                        icon: const Icon(Icons.check_circle_rounded, size: 18),
+                                        label: Text(
+                                          'Terima & Masuk Dapur',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    flex: 1,
+                                    child: SizedBox(
+                                      height: 44,
+                                      child: OutlinedButton(
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: AppColors.berryRed,
+                                          side: const BorderSide(color: AppColors.berryRed),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                        ),
+                                        onPressed: () async {
+                                          await orderProvider.updateStatus(order.id, 'dibatalkan');
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                content: Text('Pesanan telah dibatalkan.'),
+                                                backgroundColor: AppColors.berryRed,
+                                              ),
+                                            );
+                                          }
+                                        },
+                                        child: Text(
+                                          'Tolak',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+
+                            // 2. Siap Diambil / Diantar Actions
                             if (order.isReady) ...[
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 14),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 46,
+                                child: ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: order.isDelivery ? AppColors.coldBrewBlue : AppColors.matchaGreen,
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                  ),
+                                  onPressed: () async {
+                                    if (order.isDelivery) {
+                                      await orderProvider.updateStatus(order.id, 'dikirim');
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('Pesanan Kak ${order.customerName ?? "Pelanggan"} sedang diantar kurir!'),
+                                            backgroundColor: AppColors.coldBrewBlue,
+                                          ),
+                                        );
+                                      }
+                                    } else {
+                                      await orderProvider.updateStatus(order.id, 'selesai');
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('Pesanan Kak ${order.customerName ?? "Pelanggan"} selesai & diserahkan!'),
+                                            backgroundColor: AppColors.matchaGreen,
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  },
+                                  icon: Icon(order.isDelivery ? Icons.delivery_dining : Icons.check_circle_outline, size: 20),
+                                  label: Text(
+                                    order.isDelivery ? 'Mulai Antar (Ke Kurir)' : 'Pesanan Selesai (Diserahkan)',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+
+                            // 3. Sedang Diantar Actions
+                            if (order.isDelivering) ...[
+                              const SizedBox(height: 14),
                               SizedBox(
                                 width: double.infinity,
                                 height: 46,
@@ -232,15 +447,15 @@ class _KasirOrdersTrackingScreenState extends State<KasirOrdersTrackingScreen> {
                                     if (context.mounted) {
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(
-                                          content: Text('Pesanan Kak ${order.customerName ?? "Pelanggan"} selesai & diserahkan!'),
+                                          content: Text('Pesanan Kak ${order.customerName ?? "Pelanggan"} berhasil sampai ke pelanggan!'),
                                           backgroundColor: AppColors.matchaGreen,
                                         ),
                                       );
                                     }
                                   },
-                                  icon: const Icon(Icons.check_circle_outline, size: 20),
+                                  icon: const Icon(Icons.done_all_rounded, size: 20),
                                   label: Text(
-                                    'Pesanan Selesai',
+                                    'Konfirmasi Pesanan Sampai (Selesai)',
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w800,
@@ -260,7 +475,7 @@ class _KasirOrdersTrackingScreenState extends State<KasirOrdersTrackingScreen> {
     );
   }
 
-  Widget _buildFilterChip(String label, String key) {
+  Widget _buildFilterChip(String label, String key, {bool hasAlert = false}) {
     final isSelected = _selectedFilter == key;
     return InkWell(
       borderRadius: BorderRadius.circular(20),
@@ -268,15 +483,20 @@ class _KasirOrdersTrackingScreenState extends State<KasirOrdersTrackingScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.roastedCoffee : AppColors.softSand,
+          color: isSelected
+              ? (hasAlert ? AppColors.berryRed : AppColors.roastedCoffee)
+              : (hasAlert ? const Color(0xFFFFECEB) : AppColors.softSand),
           borderRadius: BorderRadius.circular(20),
+          border: hasAlert && !isSelected ? Border.all(color: AppColors.berryRed.withOpacity(0.5)) : null,
         ),
         child: Text(
           label,
           style: GoogleFonts.plusJakartaSans(
             fontSize: 12,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected ? Colors.white : AppColors.textSecondary,
+            fontWeight: (isSelected || hasAlert) ? FontWeight.w700 : FontWeight.w500,
+            color: isSelected
+                ? Colors.white
+                : (hasAlert ? AppColors.berryRed : AppColors.textSecondary),
           ),
         ),
       ),

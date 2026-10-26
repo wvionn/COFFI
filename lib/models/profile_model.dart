@@ -18,6 +18,7 @@ class ProfileModel {
   bool get isAdmin => role == 'admin';
   bool get isKasir => role == 'kasir';
   bool get isDapur => role == 'dapur';
+  bool get isUser => role == 'user' || role == 'customer' || role == 'pelanggan';
 
   factory ProfileModel.fromMap(Map<String, dynamic> map) {
     return ProfileModel(

@@ -472,10 +472,13 @@ class SupabaseService {
   }
 
   Future<OrderModel?> createOrder({
-    required String orderType, // 'dine_in' or 'takeaway'
+    required String orderType, // 'dine_in', 'takeaway', 'delivery'
     String? tableId,
     String? tableNumber,
+    String? customerId,
     String? customerName,
+    String? customerPhone,
+    String? deliveryAddress,
     String? cashierId,
     String? cashierName,
     required List<OrderItemModel> items,
@@ -483,6 +486,7 @@ class SupabaseService {
     required double amountPaid,
     required double changeAmount,
     String? generalNotes,
+    String initialStatus = 'pending',
   }) async {
     final orderId = const Uuid().v4();
     final now = DateTime.now();
@@ -506,21 +510,29 @@ class SupabaseService {
     final taxAmount = (subtotal * 0.10); // PB1 10%
     final totalAmount = subtotal + taxAmount;
 
+    String? finalNotes = generalNotes;
+    if (orderType == 'delivery' && deliveryAddress != null && deliveryAddress.isNotEmpty) {
+      finalNotes = "📍 [DELIVERY] Alamat: $deliveryAddress | HP: ${customerPhone ?? '-'}${generalNotes != null && generalNotes.isNotEmpty ? ' | Catatan: $generalNotes' : ''}";
+    }
+
     final order = OrderModel(
       id: orderId,
       invoiceNumber: invoiceNumber,
       orderType: orderType,
       tableId: tableId,
       tableNumber: tableNumber,
+      customerId: customerId,
       customerName: customerName,
+      customerPhone: customerPhone,
+      deliveryAddress: deliveryAddress,
       cashierId: cashierId,
       cashierName: cashierName,
-      status: 'pending', // Starts at pending for Kitchen KDS
+      status: initialStatus,
       subtotalAmount: subtotal,
       taxAmount: taxAmount,
       totalAmount: totalAmount,
       totalHpp: totalHpp,
-      notes: generalNotes,
+      notes: finalNotes,
       createdAt: now,
       items: mappedItems,
     );
@@ -531,7 +543,7 @@ class SupabaseService {
       paymentMethod: paymentMethod,
       amountPaid: amountPaid,
       changeAmount: changeAmount,
-      paymentStatus: 'paid',
+      paymentStatus: initialStatus == 'menunggu_validasi' && paymentMethod == 'cash' ? 'pending' : 'paid',
       paidAt: now,
     );
 
@@ -541,12 +553,14 @@ class SupabaseService {
         await client.from('order_items').insert(mappedItems.map((e) => e.toMap()).toList());
         await client.from('payments').insert(payment.toMap());
 
-        if (orderType == 'dine_in' && tableId != null) {
+        if (orderType == 'dine_in' && tableId != null && initialStatus != 'menunggu_validasi') {
           await updateTableStatus(tableId, 'occupied', orderId: orderId);
         }
 
         await fetchOrders();
-        _newOrderAlertController.add(order);
+        if (initialStatus == 'pending') {
+          _newOrderAlertController.add(order);
+        }
         return order;
       } catch (e) {
         debugPrint('Error createOrder Supabase: $e');
@@ -574,7 +588,7 @@ class SupabaseService {
               stockBefore: p.stock,
               stockAfter: newStock,
               referenceId: orderId,
-              notes: 'Pesanan Kasir $invoiceNumber',
+              notes: 'Pesanan $invoiceNumber',
               createdAt: now,
             ));
           }
@@ -582,14 +596,16 @@ class SupabaseService {
       }
     }
 
-    // Update table status if Dine-In
-    if (orderType == 'dine_in' && tableId != null) {
+    // Update table status if Dine-In (and validated)
+    if (orderType == 'dine_in' && tableId != null && initialStatus != 'menunggu_validasi') {
       await updateTableStatus(tableId, 'occupied', orderId: orderId);
     }
 
     _ordersStreamController.add(List.from(_demoOrders));
     _productsStreamController.add(List.from(_demoProducts));
-    _newOrderAlertController.add(order);
+    if (initialStatus == 'pending') {
+      _newOrderAlertController.add(order);
+    }
 
     return order;
   }
@@ -624,6 +640,14 @@ class SupabaseService {
         status: newStatus,
         updatedAt: DateTime.now(),
       );
+
+      // If validated from menunggu_validasi to pending or diproses, alert kitchen
+      if (current.status == 'menunggu_validasi' && (newStatus == 'pending' || newStatus == 'diproses')) {
+        _newOrderAlertController.add(_demoOrders[index]);
+        if (current.tableId != null) {
+          await updateTableStatus(current.tableId!, 'occupied', orderId: orderId);
+        }
+      }
 
       // If completed or cancelled, free table
       if ((newStatus == 'selesai' || newStatus == 'dibatalkan') && current.tableId != null) {

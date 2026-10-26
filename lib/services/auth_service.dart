@@ -35,6 +35,14 @@ class AuthService {
       phone: '081234567892',
       isActive: true,
     ),
+    ProfileModel(
+      id: 'user_1',
+      fullName: 'Aviona (Pelanggan)',
+      role: 'user',
+      email: 'user@coffi.com',
+      phone: '081298765432',
+      isActive: true,
+    ),
   ];
 
   List<ProfileModel> get demoStaffList => List.unmodifiable(_demoStaffList);
@@ -119,6 +127,8 @@ class AuthService {
       _currentProfile = _demoStaffList[0];
     } else if (lower.contains('dapur') || lower.contains('barista')) {
       _currentProfile = _demoStaffList[2];
+    } else if (lower.contains('user') || lower.contains('pelanggan') || lower.contains('customer')) {
+      _currentProfile = _demoStaffList[3];
     } else {
       _currentProfile = _demoStaffList[1];
     }

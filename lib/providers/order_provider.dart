@@ -20,10 +20,12 @@ class OrderProvider extends ChangeNotifier {
   OrderModel? get incomingAlertOrder => _incomingAlertOrder;
   bool get soundEnabled => _soundEnabled;
 
-  // Kitchen KDS categorizations
+  // Kitchen KDS & Cashier categorizations
+  List<OrderModel> get waitingValidationOrders => _orders.where((o) => o.isWaitingValidation).toList();
   List<OrderModel> get newKitchenOrders => _orders.where((o) => o.isPending).toList();
   List<OrderModel> get inProgressKitchenOrders => _orders.where((o) => o.isProcessing).toList();
   List<OrderModel> get readyKitchenOrders => _orders.where((o) => o.isReady).toList();
+  List<OrderModel> get deliveringOrders => _orders.where((o) => o.isDelivering).toList();
   List<OrderModel> get completedOrders => _orders.where((o) => o.isCompleted).toList();
 
   int get activeTicketsCount => newKitchenOrders.length + inProgressKitchenOrders.length;
@@ -78,11 +80,26 @@ class OrderProvider extends ChangeNotifier {
     return await _service.toggleOrderItemCompleted(orderId, itemId, !currentVal);
   }
 
+  List<OrderModel> getCustomerOrders({String? customerId, String? customerName}) {
+    return _orders.where((o) {
+      if (customerId != null && o.customerId == customerId) return true;
+      if (customerName != null &&
+          customerName.isNotEmpty &&
+          o.customerName?.toLowerCase().trim() == customerName.toLowerCase().trim()) {
+        return true;
+      }
+      return false;
+    }).toList();
+  }
+
   Future<OrderModel?> checkout({
     required String orderType,
     String? tableId,
     String? tableNumber,
+    String? customerId,
     String? customerName,
+    String? customerPhone,
+    String? deliveryAddress,
     String? cashierId,
     String? cashierName,
     required List<dynamic> items,
@@ -90,6 +107,7 @@ class OrderProvider extends ChangeNotifier {
     required double amountPaid,
     required double changeAmount,
     String? generalNotes,
+    String initialStatus = 'pending',
   }) async {
     _isLoading = true;
     notifyListeners();
@@ -98,7 +116,10 @@ class OrderProvider extends ChangeNotifier {
       orderType: orderType,
       tableId: tableId,
       tableNumber: tableNumber,
+      customerId: customerId,
       customerName: customerName,
+      customerPhone: customerPhone,
+      deliveryAddress: deliveryAddress,
       cashierId: cashierId,
       cashierName: cashierName,
       items: items.cast(),
@@ -106,6 +127,7 @@ class OrderProvider extends ChangeNotifier {
       amountPaid: amountPaid,
       changeAmount: changeAmount,
       generalNotes: generalNotes,
+      initialStatus: initialStatus,
     );
 
     _isLoading = false;

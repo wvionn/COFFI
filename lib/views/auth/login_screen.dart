@@ -1,10 +1,11 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../models/profile_model.dart';
 import '../../providers/auth_provider.dart';
 import '../admin/admin_main_screen.dart';
+import '../customer/customer_main_screen.dart';
 import '../dapur/dapur_kds_screen.dart';
 import '../kasir/kasir_main_screen.dart';
 
@@ -67,6 +68,8 @@ class _LoginScreenState extends State<LoginScreen> {
       destination = const AdminMainScreen();
     } else if (profile.isDapur) {
       destination = const DapurKdsScreen();
+    } else if (profile.isUser) {
+      destination = const CustomerMainScreen();
     } else {
       destination = const KasirMainScreen();
     }
@@ -321,6 +324,33 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                         ),
                       ),
+
+                      const SizedBox(height: 24),
+
+                      // Quick Demo Account Switcher
+                      Center(
+                        child: Text(
+                          '— PILIH AKUN DEMO CEPAT —',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textMuted,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        alignment: WrapAlignment.center,
+                        children: [
+                          _buildQuickRoleChip('👑 Admin', 'admin@coffi.com'),
+                          _buildQuickRoleChip('💼 Kasir', 'kasir@coffi.com'),
+                          _buildQuickRoleChip('🍳 Dapur', 'dapur@coffi.com'),
+                          _buildQuickRoleChip('👤 Pelanggan', 'user@coffi.com'),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -328,6 +358,33 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildQuickRoleChip(String label, String email) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () {
+        _emailController.text = email;
+        _passwordController.text = '123456';
+        _submit();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF3F4F6),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: AppColors.espressoDark,
+          ),
+        ),
       ),
     );
   }

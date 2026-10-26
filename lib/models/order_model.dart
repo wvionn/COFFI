@@ -3,13 +3,16 @@ import 'order_item_model.dart';
 class OrderModel {
   final String id;
   final String invoiceNumber;
-  final String orderType; // 'dine_in', 'takeaway'
+  final String orderType; // 'dine_in', 'takeaway', 'delivery'
   final String? tableId;
   final String? tableNumber;
+  final String? customerId;
   final String? customerName;
+  final String? customerPhone;
+  final String? deliveryAddress;
   final String? cashierId;
   final String? cashierName;
-  final String status; // 'pending', 'diproses', 'siap', 'selesai', 'dibatalkan'
+  final String status; // 'menunggu_validasi', 'pending', 'diproses', 'siap', 'dikirim', 'selesai', 'dibatalkan'
   final double subtotalAmount;
   final double taxAmount; // PB1 10%
   final double totalAmount;
@@ -25,7 +28,10 @@ class OrderModel {
     this.orderType = 'dine_in',
     this.tableId,
     this.tableNumber,
+    this.customerId,
     this.customerName,
+    this.customerPhone,
+    this.deliveryAddress,
     this.cashierId,
     this.cashierName,
     this.status = 'pending',
@@ -41,10 +47,13 @@ class OrderModel {
 
   bool get isDineIn => orderType == 'dine_in';
   bool get isTakeaway => orderType == 'takeaway';
+  bool get isDelivery => orderType == 'delivery';
 
+  bool get isWaitingValidation => status == 'menunggu_validasi';
   bool get isPending => status == 'pending';
   bool get isProcessing => status == 'diproses';
   bool get isReady => status == 'siap';
+  bool get isDelivering => status == 'dikirim';
   bool get isCompleted => status == 'selesai';
   bool get isCancelled => status == 'dibatalkan';
 
@@ -70,7 +79,10 @@ class OrderModel {
       orderType: map['order_type']?.toString().toLowerCase() ?? 'dine_in',
       tableId: map['table_id']?.toString(),
       tableNumber: map['table_number']?.toString(),
+      customerId: map['customer_id']?.toString(),
       customerName: map['customer_name']?.toString(),
+      customerPhone: map['customer_phone']?.toString(),
+      deliveryAddress: map['delivery_address']?.toString(),
       cashierId: map['cashier_id']?.toString(),
       cashierName: map['cashier_name']?.toString(),
       status: map['status']?.toString().toLowerCase() ?? 'pending',
@@ -92,7 +104,10 @@ class OrderModel {
       'order_type': orderType,
       'table_id': tableId,
       'table_number': tableNumber,
+      'customer_id': customerId,
       'customer_name': customerName,
+      'customer_phone': customerPhone,
+      'delivery_address': deliveryAddress,
       'cashier_id': cashierId,
       'cashier_name': cashierName,
       'status': status,
@@ -112,7 +127,10 @@ class OrderModel {
     String? orderType,
     String? tableId,
     String? tableNumber,
+    String? customerId,
     String? customerName,
+    String? customerPhone,
+    String? deliveryAddress,
     String? cashierId,
     String? cashierName,
     String? status,
@@ -131,7 +149,10 @@ class OrderModel {
       orderType: orderType ?? this.orderType,
       tableId: tableId ?? this.tableId,
       tableNumber: tableNumber ?? this.tableNumber,
+      customerId: customerId ?? this.customerId,
       customerName: customerName ?? this.customerName,
+      customerPhone: customerPhone ?? this.customerPhone,
+      deliveryAddress: deliveryAddress ?? this.deliveryAddress,
       cashierId: cashierId ?? this.cashierId,
       cashierName: cashierName ?? this.cashierName,
       status: status ?? this.status,
