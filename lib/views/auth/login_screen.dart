@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../models/profile_model.dart';
 import '../../providers/auth_provider.dart';
 import '../admin/admin_main_screen.dart';
-import '../customer/customer_main_screen.dart';
+import '../customer/customer_order_mode_screen.dart';
 import '../dapur/dapur_kds_screen.dart';
 import '../kasir/kasir_main_screen.dart';
-
+import 'register_screen.dart';
+import 'welcome_screen.dart';
+import 'widgets/auth_text_field.dart';
+import 'widgets/social_auth_button.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -18,10 +22,10 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  bool _isPasswordVisible = false;
-
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _isPasswordVisible = false;
+  bool _showDemoAccounts = false;
 
   @override
   void dispose() {
@@ -30,7 +34,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  Future<void> _submit() async {
+  Future<void> _submitLogin() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     if (email.isEmpty || password.isEmpty) {
@@ -69,7 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } else if (profile.isDapur) {
       destination = const DapurKdsScreen();
     } else if (profile.isUser) {
-      destination = const CustomerMainScreen();
+      destination = const CustomerOrderModeScreen();
     } else {
       destination = const KasirMainScreen();
     }
@@ -80,309 +84,328 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  InputDecoration _fieldDecoration({
-    required IconData icon,
-    required String hint,
-    Widget? suffix,
-  }) {
-    return InputDecoration(
-      prefixIcon: Icon(icon, color: AppColors.textMuted, size: 20),
-      suffixIcon: suffix,
-      hintText: hint,
-      hintStyle: GoogleFonts.plusJakartaSans(
-        fontSize: 14,
-        color: AppColors.textMuted,
-      ),
-      filled: true,
-      fillColor: const Color(0xFFFAFAFA),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFFE5E7EB), width: 1.2),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: AppColors.roastedCoffee,
-          width: 1.5,
-        ),
-      ),
-    );
+  void _handleBack() {
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      backgroundColor: AppColors.darkCoffeeHeader,
-      body: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            height: size.height * 0.60,
-            color: AppColors.darkCoffeeHeader,
-            child: SafeArea(
-              bottom: false,
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Logo Icon Header App
-                      Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(
-                            color: Colors.white,
-                            width: 2.5,
+      backgroundColor: AppColors.figmaCreamBg,
+      body: AnnotatedRegion(
+        value: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.dark,
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Top Navigation: Back Button & Quick Demo Toggle
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Material(
+                      color: AppColors.figmaSoftCream,
+                      borderRadius: BorderRadius.circular(14),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(14),
+                        onTap: _handleBack,
+                        child: Container(
+                          width: 44,
+                          height: 44,
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.chevron_left_rounded,
+                            color: AppColors.figmaCoffee,
+                            size: 26,
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.15),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
+                        ),
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _showDemoAccounts = !_showDemoAccounts;
+                        });
+                      },
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        backgroundColor: AppColors.figmaSoftCream,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon: Icon(
+                        _showDemoAccounts
+                            ? Icons.expand_less_rounded
+                            : Icons.touch_app_rounded,
+                        size: 16,
+                        color: AppColors.figmaCoffee,
+                      ),
+                      label: Text(
+                        'Demo Akun',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.figmaCoffee,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                // Collapsible Demo Account Bar
+                if (_showDemoAccounts) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFEADBCE)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'PILIH AKUN ROLE DEMO (OTOMATIS LOGIN):',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.5,
+                            color: AppColors.figmaHazelnut,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _buildQuickRoleChip('👑 Admin', 'admin@coffi.com'),
+                            _buildQuickRoleChip('💼 Kasir', 'kasir@coffi.com'),
+                            _buildQuickRoleChip('🍳 Dapur', 'dapur@coffi.com'),
+                            _buildQuickRoleChip('👤 Pelanggan', 'user@coffi.com'),
                           ],
                         ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(15),
-                          child: Image.asset(
-                            'public/icons/icon.png',
-                            width: 80,
-                            height: 80,
-                            fit: BoxFit.cover,
+                      ],
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 24),
+
+                // Heading
+                Text(
+                  'Selamat Datang!',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                    color: AppColors.figmaCoffee,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Silakan masuk untuk melanjutkan pesanan Anda.',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                // Form Fields
+                AuthTextField(
+                  label: 'Email / No. Handphone',
+                  hintText: 'example@mail.com',
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                ),
+
+                const SizedBox(height: 18),
+
+                AuthTextField(
+                  label: 'Password',
+                  hintText: '••••••••',
+                  controller: _passwordController,
+                  isPassword: true,
+                  isPasswordVisible: _isPasswordVisible,
+                  onTogglePassword: () {
+                    setState(() {
+                      _isPasswordVisible = !_isPasswordVisible;
+                    });
+                  },
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => auth.isLoading ? null : _submitLogin(),
+                ),
+
+                const SizedBox(height: 26),
+
+                // MASUK Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.figmaCoffee,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    onPressed: auth.isLoading ? null : _submitLogin,
+                    child: auth.isLoading
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Text(
+                            'MASUK',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5,
+                            ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Selamat Datang di Coffi',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'COFFI POS & Kitchen System',
+                  ),
+                ),
+
+                const SizedBox(height: 22),
+
+                // Divider: Atau masuk dengan
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Divider(color: Color(0xFFEADBCE), thickness: 1),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Text(
+                        'Atau masuk dengan',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: AppColors.creamLatte.withOpacity(0.85),
+                          color: const Color(0xFFB19A8A),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    const Expanded(
+                      child: Divider(color: Color(0xFFEADBCE), thickness: 1),
+                    ),
+                  ],
                 ),
-              ),
-            ),
-          ),
 
-          // Bottom Curved White Card
-          Expanded(
-            child: Container(
-              width: 450,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-              ),
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(32),
+                const SizedBox(height: 18),
+
+                // Social Auth Buttons: Google & OTP
+                SocialAuthRow(
+                  onGoogleTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Login via Google belum diaktifkan.'),
+                        backgroundColor: AppColors.roastedCoffee,
+                      ),
+                    );
+                  },
+                  onOtpTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Login via OTP WhatsApp belum diaktifkan.'),
+                        backgroundColor: AppColors.roastedCoffee,
+                      ),
+                    );
+                  },
                 ),
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(28, 28, 28, 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        'Email',
+
+                const SizedBox(height: 30),
+
+                // Bottom Register Redirect Link
+                Center(
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const RegisterScreen(),
+                        ),
+                      );
+                    },
+                    child: RichText(
+                      text: TextSpan(
+                        text: 'Belum punya akun? ',
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textMuted,
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        textInputAction: TextInputAction.next,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14,
-                          color: AppColors.textPrimary,
-                        ),
-                        decoration: _fieldDecoration(
-                          icon: Icons.mail_outline_rounded,
-                          hint: 'nama@email.com',
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        'Password',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: _passwordController,
-                        obscureText: !_isPasswordVisible,
-                        textInputAction: TextInputAction.done,
-                        onSubmitted: (_) => auth.isLoading ? null : _submit(),
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14,
-                          color: AppColors.textPrimary,
-                        ),
-                        decoration: _fieldDecoration(
-                          icon: Icons.lock_outline_rounded,
-                          hint: 'Masukkan password',
-                          suffix: IconButton(
-                            icon: Icon(
-                              _isPasswordVisible
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                              color: AppColors.textMuted,
-                              size: 20,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _isPasswordVisible = !_isPasswordVisible;
-                              });
-                            },
-                          ),
-                        ),
-                      ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 4),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Hubungi Administrator untuk reset kata sandi.',
-                                ),
-                                backgroundColor: AppColors.roastedCoffee,
-                              ),
-                            );
-                          },
-                          child: Text(
-                            'Lupa Password?',
+                        children: [
+                          TextSpan(
+                            text: 'Daftar Sekarang',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
+                              color: AppColors.figmaCoffee,
                             ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        height: 52,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.activePillCream,
-                            foregroundColor: AppColors.espressoDark,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          onPressed: auth.isLoading ? null : _submit,
-                          child: auth.isLoading
-                              ? const SizedBox(
-                                  width: 22,
-                                  height: 22,
-                                  child: CircularProgressIndicator(
-                                    color: AppColors.espressoDark,
-                                    strokeWidth: 2.2,
-                                  ),
-                                )
-                              : Text(
-                                  'Masuk',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.espressoDark,
-                                  ),
-                                ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Quick Demo Account Switcher
-                      Center(
-                        child: Text(
-                          '— PILIH AKUN DEMO CEPAT —',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textMuted,
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        alignment: WrapAlignment.center,
-                        children: [
-                          _buildQuickRoleChip('👑 Admin', 'admin@coffi.com'),
-                          _buildQuickRoleChip('💼 Kasir', 'kasir@coffi.com'),
-                          _buildQuickRoleChip('🍳 Dapur', 'dapur@coffi.com'),
-                          _buildQuickRoleChip('👤 Pelanggan', 'user@coffi.com'),
                         ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
+
+                const SizedBox(height: 20),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildQuickRoleChip(String label, String email) {
     return InkWell(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(10),
       onTap: () {
         _emailController.text = email;
         _passwordController.text = '123456';
-        _submit();
+        _submitLogin();
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: const Color(0xFFF3F4F6),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
+          color: AppColors.figmaSoftCream,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFEADBCE)),
         ),
         child: Text(
           label,
           style: GoogleFonts.plusJakartaSans(
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: FontWeight.w700,
-            color: AppColors.espressoDark,
+            color: AppColors.figmaCoffee,
           ),
         ),
       ),
