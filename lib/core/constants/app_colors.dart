@@ -30,6 +30,24 @@ class AppColors {
   static const Color borderSubtle = Color(0xFFEADBCE);
   static const Color divider = Color(0xFFF0E7DD);
 
+  // Figma Exact Modern Design System
+  static const Color figmaCoffee = Color(0xFF563A2E);
+  static const Color figmaCreamBg = Color(0xFFFDFAF7);
+  static const Color figmaHazelnut = Color(0xFFB18368);
+  static const Color figmaSubtleBorder = Color(0xFFEADBCE);
+  static const Color figmaFieldBorder = Color(0xFFE8DDD3);
+  static const Color figmaSoftCream = Color(0xFFF5EFE9);
+  static const Color figmaPromoTag = Color(0xFFE8B896);
+  static const Color figmaRedPin = Color(0xFFC44536);
+  static const Color figmaGoogleBorder = Color(0xFFEAE2D9);
+  static const Color figmaWhatsAppGreen = Color(0xFF25D366);
+  static const Color figmaReadyGreen = Color(0xFF059669);
+  static const Color figmaReadyBg = Color(0xFFD1FAE5);
+  static const Color figmaStockTeal = Color(0xFF0D9488);
+  static const Color figmaStockBg = Color(0xFFCCFBF1);
+  static const Color figmaLimitedGreen = Color(0xFF10B981);
+  static const Color figmaNavDock = Color(0xFF4A3225);
+
   // Gradients
   static const LinearGradient coffeeGradient = LinearGradient(
     colors: [espressoDark, roastedCoffee],
