@@ -93,6 +93,10 @@ class TableProvider extends ChangeNotifier {
     return await _service.forceFreeTable(tableId);
   }
 
+  Future<bool> occupyTable(String tableId, String orderId) async {
+    return await _service.updateTableStatus(tableId, 'occupied', orderId: orderId);
+  }
+
   @override
   void dispose() {
     _tablesSubscription?.cancel();

@@ -102,6 +102,20 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void incrementItem(String itemId) {
+    final index = _items.indexWhere((i) => i.id == itemId);
+    if (index != -1) {
+      updateQuantity(itemId, _items[index].quantity + 1);
+    }
+  }
+
+  void decrementItem(String itemId) {
+    final index = _items.indexWhere((i) => i.id == itemId);
+    if (index != -1) {
+      updateQuantity(itemId, _items[index].quantity - 1);
+    }
+  }
+
   void updateQuantity(String itemId, int newQuantity) {
     if (newQuantity <= 0) {
       removeItem(itemId);

@@ -1,7 +1,7 @@
 class ProfileModel {
   final String id;
   final String fullName;
-  final String role; // 'admin', 'kasir', 'dapur'
+  final String role; // 'admin', 'kasir', 'dapur', 'user'
   final String? email;
   final String? phone;
   final bool isActive;
@@ -36,6 +36,7 @@ class ProfileModel {
       'id': id,
       'full_name': fullName,
       'role': role,
+      'email': email,
       'phone': phone,
       'is_active': isActive,
     };

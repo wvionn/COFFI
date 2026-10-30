@@ -2,7 +2,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../core/utils/sound_service.dart';
 import '../models/order_model.dart';
+import '../models/profile_model.dart';
 import '../services/supabase_service.dart';
+import 'cart_provider.dart';
 
 class OrderProvider extends ChangeNotifier {
   final SupabaseService _service = SupabaseService.instance;
@@ -29,6 +31,8 @@ class OrderProvider extends ChangeNotifier {
   List<OrderModel> get completedOrders => _orders.where((o) => o.isCompleted).toList();
 
   int get activeTicketsCount => newKitchenOrders.length + inProgressKitchenOrders.length;
+  List<OrderModel> get activeOrders => _orders.where((o) => !o.isCompleted && !o.isCancelled).toList();
+  String? get errorMessage => null;
 
   OrderProvider() {
     init();
@@ -133,6 +137,30 @@ class OrderProvider extends ChangeNotifier {
     _isLoading = false;
     notifyListeners();
     return order;
+  }
+
+  Future<bool> createCustomerOrder({
+    required CartProvider cart,
+    ProfileModel? customerProfile,
+  }) async {
+    final order = await checkout(
+      orderType: cart.orderType,
+      tableId: cart.selectedTable?.id,
+      tableNumber: cart.selectedTable?.tableNumber,
+      customerId: customerProfile?.id,
+      customerName: cart.customerName.isNotEmpty ? cart.customerName : customerProfile?.fullName,
+      customerPhone: cart.customerPhone,
+      deliveryAddress: cart.deliveryAddress,
+      cashierId: null,
+      cashierName: 'Self-Order (Pelanggan)',
+      items: cart.items,
+      paymentMethod: 'cashless',
+      amountPaid: cart.totalAmount,
+      changeAmount: 0,
+      generalNotes: cart.generalNotes,
+      initialStatus: 'pending',
+    );
+    return order != null;
   }
 
   @override

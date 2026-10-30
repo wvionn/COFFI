@@ -13,6 +13,10 @@ class CurrencyFormatter {
     return _formatter.format(amount);
   }
 
+  static String formatRupiah(num amount) {
+    return _formatter.format(amount);
+  }
+
   static String formatCompact(num amount) {
     if (amount >= 1000000) {
       final double inM = amount / 1000000;
