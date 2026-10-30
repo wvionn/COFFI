@@ -74,6 +74,76 @@ class AuthService {
     }
   }
 
+  void deleteStaff(String staffId) {
+    _demoStaffList.removeWhere((s) => s.id == staffId);
+    final sb = SupabaseService.instance;
+    if (sb.isConnected) {
+      sb.client.from('profiles').delete().eq('id', staffId).catchError((e) {
+        debugPrint('Error deleteStaff: $e');
+      });
+    }
+  }
+
+  /// Register new customer account via Supabase or demo mode
+  Future<ProfileModel?> signUpWithEmail({
+    required String email,
+    required String password,
+    String? fullName,
+  }) async {
+    final sb = SupabaseService.instance;
+    final name = fullName?.trim().isNotEmpty == true ? fullName!.trim() : email.split('@').first;
+
+    if (sb.isConnected) {
+      try {
+        final res = await sb.client.auth.signUp(
+          email: email,
+          password: password,
+          data: {'full_name': name, 'role': 'user'},
+        );
+        if (res.user != null) {
+          final newProfile = ProfileModel(
+            id: res.user!.id,
+            fullName: name,
+            role: 'user',
+            email: email,
+            isActive: true,
+          );
+          await sb.client.from('profiles').upsert(newProfile.toMap());
+          _currentProfile = newProfile;
+          return _currentProfile;
+        }
+      } catch (e) {
+        debugPrint('Auth signUpWithEmail error: $e');
+        rethrow;
+      }
+    }
+
+    // Demo/offline register fallback
+    final newDemoUser = ProfileModel(
+      id: 'user_${DateTime.now().millisecondsSinceEpoch}',
+      fullName: name,
+      role: 'user',
+      email: email,
+      isActive: true,
+    );
+    _demoStaffList.add(newDemoUser);
+    _currentProfile = newDemoUser;
+    return _currentProfile;
+  }
+
+  /// Guest Login Mode
+  Future<ProfileModel> signInAsGuest() async {
+    final guestProfile = ProfileModel(
+      id: 'guest_${DateTime.now().millisecondsSinceEpoch}',
+      fullName: 'Tamu (Guest)',
+      role: 'user',
+      email: 'guest@coffi.com',
+      isActive: true,
+    );
+    _currentProfile = guestProfile;
+    return guestProfile;
+  }
+
   /// Login via Supabase Auth (Email & Password)
   Future<ProfileModel?> signInWithEmail({
     required String email,

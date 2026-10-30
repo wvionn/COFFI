@@ -6,7 +6,7 @@ import '../../core/constants/app_colors.dart';
 import '../../models/profile_model.dart';
 import '../../providers/auth_provider.dart';
 import '../admin/admin_main_screen.dart';
-import '../customer/customer_order_mode_screen.dart';
+import '../customer/customer_main_screen.dart';
 import '../dapur/dapur_kds_screen.dart';
 import '../kasir/kasir_main_screen.dart';
 import 'register_screen.dart';
@@ -73,7 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } else if (profile.isDapur) {
       destination = const DapurKdsScreen();
     } else if (profile.isUser) {
-      destination = const CustomerOrderModeScreen();
+      destination = const CustomerMainScreen();
     } else {
       destination = const KasirMainScreen();
     }

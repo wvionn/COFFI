@@ -10,7 +10,7 @@ import 'providers/menu_provider.dart';
 import 'providers/order_provider.dart';
 import 'providers/table_provider.dart';
 import 'services/supabase_service.dart';
-import 'views/auth/login_screen.dart';
+import 'views/auth/welcome_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,8 +45,9 @@ class CoffiApp extends StatelessWidget {
         title: 'COFFI - Modern Cafe POS & Kitchen',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
-        home: const LoginScreen(),
+        home: const WelcomeScreen(),
       ),
     );
   }
 }
+
