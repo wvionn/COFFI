@@ -38,6 +38,12 @@ class SupabaseService {
 
   bool get isConnected => _isInitialized && _client != null && SupabaseConfig.isConfigured();
 
+  bool _isValidUuid(dynamic str) {
+    if (str == null || str is! String) return false;
+    final uuidRegex = RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
+    return uuidRegex.hasMatch(str);
+  }
+
   SupabaseClient get client {
     if (_client == null) {
       throw StateError('Supabase client not initialized yet.');
@@ -549,8 +555,19 @@ class SupabaseService {
 
     if (isConnected) {
       try {
-        await client.from('orders').insert(order.toMap());
-        await client.from('order_items').insert(mappedItems.map((e) => e.toMap()).toList());
+        final orderData = Map<String, dynamic>.from(order.toMap());
+        if (!_isValidUuid(orderData['table_id'])) orderData['table_id'] = null;
+        if (!_isValidUuid(orderData['customer_id'])) orderData['customer_id'] = null;
+        if (!_isValidUuid(orderData['cashier_id'])) orderData['cashier_id'] = null;
+
+        final mappedItemsData = mappedItems.map((e) {
+          final itemMap = Map<String, dynamic>.from(e.toMap());
+          if (!_isValidUuid(itemMap['product_id'])) itemMap['product_id'] = null;
+          return itemMap;
+        }).toList();
+
+        await client.from('orders').insert(orderData);
+        await client.from('order_items').insert(mappedItemsData);
         await client.from('payments').insert(payment.toMap());
 
         if (orderType == 'dine_in' && tableId != null && initialStatus != 'menunggu_validasi') {
