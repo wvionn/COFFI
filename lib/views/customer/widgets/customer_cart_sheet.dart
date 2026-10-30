@@ -375,13 +375,22 @@ class _CustomerCartSheetState extends State<CustomerCartSheet> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Subtotal (${cart.totalItemsCount} item)',
-                          style: GoogleFonts.plusJakartaSans(fontSize: 12.5, color: AppColors.textMuted),
+                        Flexible(
+                          child: Text(
+                            'Subtotal (${cart.totalItemsCount} item)',
+                            style: GoogleFonts.plusJakartaSans(fontSize: 12.5, color: AppColors.textMuted),
+                          ),
                         ),
-                        Text(
-                          CurrencyFormatter.formatRupiah(cart.subtotalAmount),
-                          style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w600),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              CurrencyFormatter.formatRupiah(cart.subtotalAmount),
+                              style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w600),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -389,13 +398,22 @@ class _CustomerCartSheetState extends State<CustomerCartSheet> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'PB1 (10%)',
-                          style: GoogleFonts.plusJakartaSans(fontSize: 12.5, color: AppColors.textMuted),
+                        Flexible(
+                          child: Text(
+                            'PB1 (10%)',
+                            style: GoogleFonts.plusJakartaSans(fontSize: 12.5, color: AppColors.textMuted),
+                          ),
                         ),
-                        Text(
-                          CurrencyFormatter.formatRupiah(cart.taxAmount),
-                          style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w600),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              CurrencyFormatter.formatRupiah(cart.taxAmount),
+                              style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w600),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -405,20 +423,31 @@ class _CustomerCartSheetState extends State<CustomerCartSheet> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Total Pembayaran',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary,
+                        Flexible(
+                          child: Text(
+                            'Total Pembayaran',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary,
+                            ),
                           ),
                         ),
-                        Text(
-                          CurrencyFormatter.formatRupiah(cart.totalAmount),
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.figmaCoffee,
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              CurrencyFormatter.formatRupiah(cart.totalAmount),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                                color: AppColors.figmaCoffee,
+                              ),
+                            ),
                           ),
                         ),
                       ],
