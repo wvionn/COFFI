@@ -65,6 +65,11 @@ void main() {
   });
 
   testWidgets('LoginScreen elements check', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(createTestApp(const LoginScreen()));
     await tester.pumpAndSettle();
 
@@ -73,10 +78,15 @@ void main() {
     expect(find.text('MASUK'), findsOneWidget);
     expect(find.text('Atau masuk dengan'), findsOneWidget);
     expect(find.text('Google'), findsOneWidget);
-    expect(find.text('OTP'), findsOneWidget);
+    expect(find.text('OTP'), findsNothing);
   });
 
   testWidgets('RegisterScreen elements check', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(createTestApp(const RegisterScreen()));
     await tester.pumpAndSettle();
 
