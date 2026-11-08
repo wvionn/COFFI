@@ -320,20 +320,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 18),
 
-                // Social Auth Buttons: Google & OTP
+                // Social Auth Button: Google (Centered, OTP Removed)
                 SocialAuthRow(
                   onGoogleTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Login via Google belum diaktifkan.'),
-                        backgroundColor: AppColors.roastedCoffee,
-                      ),
-                    );
-                  },
-                  onOtpTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Login via OTP WhatsApp belum diaktifkan.'),
                         backgroundColor: AppColors.roastedCoffee,
                       ),
                     );

@@ -249,20 +249,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 const SizedBox(height: 18),
 
-                // Social Auth Buttons: Google & OTP
+                // Social Auth Button: Google (Centered, OTP Removed)
                 SocialAuthRow(
                   onGoogleTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Pendaftaran via Google belum diaktifkan.'),
-                        backgroundColor: AppColors.roastedCoffee,
-                      ),
-                    );
-                  },
-                  onOtpTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Pendaftaran via OTP WhatsApp belum diaktifkan.'),
                         backgroundColor: AppColors.roastedCoffee,
                       ),
                     );

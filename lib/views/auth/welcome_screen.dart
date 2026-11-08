@@ -185,33 +185,39 @@ class WelcomeScreen extends StatelessWidget {
                   // Guest Mode Text Button
                   Consumer<AuthProvider>(
                     builder: (context, auth, _) {
-                      return TextButton(
-                        onPressed: auth.isLoading
-                            ? null
-                            : () => _continueAsGuest(context),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 10,
-                            horizontal: 16,
+                      return SizedBox(
+                        width: double.infinity,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: TextButton(
+                            onPressed: auth.isLoading
+                                ? null
+                                : () => _continueAsGuest(context),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 10,
+                                horizontal: 16,
+                              ),
+                            ),
+                            child: auth.isLoading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppColors.figmaHazelnut,
+                                    ),
+                                  )
+                                : Text(
+                                    'Lanjutkan sebagai Tamu (Guest Mode)',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.figmaHazelnut,
+                                    ),
+                                  ),
                           ),
                         ),
-                        child: auth.isLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: AppColors.figmaHazelnut,
-                                ),
-                              )
-                            : Text(
-                                'Lanjutkan sebagai Tamu (Guest Mode)',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.figmaHazelnut,
-                                ),
-                              ),
                       );
                     },
                   ),

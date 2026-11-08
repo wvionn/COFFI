@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 class SocialAuthRow extends StatelessWidget {
   final VoidCallback? onGoogleTap;
-  final VoidCallback? onOtpTap;
+  final VoidCallback? onOtpTap; // Kept for backwards compatibility, not rendered
 
   const SocialAuthRow({
     super.key,
@@ -13,96 +13,121 @@ class SocialAuthRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        // Google Button
-        Expanded(
-          child: _SocialButton(
-            onTap: onGoogleTap,
-            icon: _buildGoogleIcon(),
-            label: 'Google',
-          ),
-        ),
-        const SizedBox(width: 14),
-        // OTP Button
-        Expanded(
-          child: _SocialButton(
-            onTap: onOtpTap,
-            icon: const Icon(
-              Icons.chat_bubble_outline_rounded,
-              color: Color(0xFF25D366),
-              size: 19,
+    return Center(
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: onGoogleTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            width: double.infinity,
+            height: 50,
+            constraints: const BoxConstraints(maxWidth: 320),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFFE8DDD3),
+                width: 1.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF38220F).withOpacity(0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-            label: 'OTP',
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildGoogleIcon(),
+                const SizedBox(width: 12),
+                Text(
+                  'Google',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF38220F),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      ],
+      ),
     );
   }
 
   Widget _buildGoogleIcon() {
-    return Container(
-      width: 20,
-      height: 20,
-      alignment: Alignment.center,
-      child: Text(
-        'G',
-        style: GoogleFonts.poppins(
-          fontSize: 16,
-          fontWeight: FontWeight.w700,
-          color: const Color(0xFF4285F4),
-        ),
+    return SizedBox(
+      width: 22,
+      height: 22,
+      child: CustomPaint(
+        painter: _GoogleLogoPainter(),
       ),
     );
   }
 }
 
-class _SocialButton extends StatelessWidget {
-  final VoidCallback? onTap;
-  final Widget icon;
-  final String label;
+/// Custom painter for the authentic Google 'G' 4-color logo
+class _GoogleLogoPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double w = size.width;
+    final double h = size.height;
+    final double cx = w / 2;
+    final double cy = h / 2;
+    final double radius = w * 0.45;
+    final double strokeWidth = w * 0.22;
 
-  const _SocialButton({
-    required this.onTap,
-    required this.icon,
-    required this.label,
-  });
+    final rect = Rect.fromCircle(center: Offset(cx, cy), radius: radius);
+
+    // Blue arc (top-right to bottom-right)
+    final bluePaint = Paint()
+      ..color = const Color(0xFF4285F4)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+
+    // Green arc (bottom-right to bottom-left)
+    final greenPaint = Paint()
+      ..color = const Color(0xFF34A853)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+
+    // Yellow arc (bottom-left to top-left)
+    final yellowPaint = Paint()
+      ..color = const Color(0xFFFBBC05)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+
+    // Red arc (top-left to top-right)
+    final redPaint = Paint()
+      ..color = const Color(0xFFEA4335)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+
+    // Draw arcs (approx angles in radians)
+    // Blue: -0.8 to 0.7 rad
+    canvas.drawArc(rect, -0.65, 1.45, false, bluePaint);
+    // Green: 0.7 to 2.2 rad
+    canvas.drawArc(rect, 0.7, 1.45, false, greenPaint);
+    // Yellow: 2.1 to 3.6 rad
+    canvas.drawArc(rect, 2.1, 1.35, false, yellowPaint);
+    // Red: 3.4 to 4.9 rad
+    canvas.drawArc(rect, 3.4, 1.45, false, redPaint);
+
+    // Center horizontal blue crossbar
+    final barPaint = Paint()
+      ..color = const Color(0xFF4285F4)
+      ..style = PaintingStyle.fill;
+    final barRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(cx - w * 0.05, cy - strokeWidth / 2, radius + strokeWidth / 2 + 1, strokeWidth),
+      Radius.circular(strokeWidth / 4),
+    );
+    canvas.drawRRect(barRect, barPaint);
+  }
 
   @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          height: 48,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: const Color(0xFFE8DDD3),
-              width: 1.2,
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              icon,
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF38220F),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-
