@@ -17,6 +17,12 @@ class CurrencyFormatter {
     return _formatter.format(amount);
   }
 
+  /// Formats prices in thousands format (e.g. 22000 -> "22.0", 6900 -> "6.9")
+  static String formatK(num amount) {
+    final double val = amount >= 100 ? amount / 1000 : amount.toDouble();
+    return val.toStringAsFixed(1);
+  }
+
   static String formatCompact(num amount) {
     if (amount >= 1000000) {
       final double inM = amount / 1000000;

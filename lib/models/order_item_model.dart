@@ -9,6 +9,7 @@ class OrderItemModel {
   final double subtotal;
   final String? notes; // e.g. "Dingin, Less Sugar, Es Sedikit"
   final bool isCompleted;
+  final String? imageUrl;
 
   OrderItemModel({
     required this.id,
@@ -21,6 +22,7 @@ class OrderItemModel {
     required this.subtotal,
     this.notes,
     this.isCompleted = false,
+    this.imageUrl,
   });
 
   factory OrderItemModel.fromMap(Map<String, dynamic> map) {
@@ -35,6 +37,7 @@ class OrderItemModel {
       subtotal: (map['subtotal'] as num?)?.toDouble() ?? 0.0,
       notes: map['notes']?.toString(),
       isCompleted: map['is_completed'] == null ? false : (map['is_completed'] as bool),
+      imageUrl: map['image_url']?.toString(),
     );
   }
 
@@ -50,6 +53,7 @@ class OrderItemModel {
       'subtotal': subtotal,
       'notes': notes,
       'is_completed': isCompleted,
+      'image_url': imageUrl,
     };
   }
 
@@ -64,6 +68,7 @@ class OrderItemModel {
     double? subtotal,
     String? notes,
     bool? isCompleted,
+    String? imageUrl,
   }) {
     return OrderItemModel(
       id: id ?? this.id,
@@ -76,6 +81,7 @@ class OrderItemModel {
       subtotal: subtotal ?? this.subtotal,
       notes: notes ?? this.notes,
       isCompleted: isCompleted ?? this.isCompleted,
+      imageUrl: imageUrl ?? this.imageUrl,
     );
   }
 }

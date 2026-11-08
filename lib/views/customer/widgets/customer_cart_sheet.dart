@@ -123,44 +123,50 @@ class _CustomerCartSheetState extends State<CustomerCartSheet> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: AppColors.figmaSoftCream,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.shopping_bag_outlined,
-                        color: AppColors.figmaCoffee,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Keranjang Pesanan',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary,
-                          ),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: AppColors.figmaSoftCream,
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        Text(
-                          '${cart.totalItemsCount} item dipilih',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textMuted,
-                          ),
+                        child: const Icon(
+                          Icons.shopping_bag_outlined,
+                          color: AppColors.figmaCoffee,
+                          size: 20,
                         ),
-                      ],
-                    ),
-                  ],
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Keranjang Pesanan',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            Text(
+                              "${cart.totalItemsCount} item dipilih",
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 if (cart.items.isNotEmpty)
                   TextButton(
@@ -536,22 +542,29 @@ class _CustomerCartSheetState extends State<CustomerCartSheet> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              const Icon(Icons.table_restaurant_rounded, size: 20, color: AppColors.figmaCoffee),
-              const SizedBox(width: 8),
-              Text(
-                cart.selectedTable != null
-                    ? '${cart.selectedTable!.tableNumber} (${cart.selectedTable!.area})'
-                    : 'Pilih Nomor Meja:',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+          Expanded(
+            child: Row(
+              children: [
+                const Icon(Icons.table_restaurant_rounded, size: 20, color: AppColors.figmaCoffee),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    cart.selectedTable != null
+                        ? "${cart.selectedTable!.tableNumber} (${cart.selectedTable!.area})"
+                        : 'Pilih Nomor Meja:',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
+          const SizedBox(width: 8),
           DropdownButton<String>(
             value: cart.selectedTable?.id,
             hint: Text(

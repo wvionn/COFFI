@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../models/product_model.dart';
+import 'customer_product_customization_sheet.dart';
 
 class CustomerFavoriteCard extends StatelessWidget {
   final ProductModel product;
@@ -40,7 +41,7 @@ class CustomerFavoriteCard extends StatelessWidget {
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(22),
         child: InkWell(
-          onTap: onTap ?? onAddToCart,
+          onTap: onTap ?? () => CustomerProductCustomizationSheet.show(context, product),
           borderRadius: BorderRadius.circular(22),
           child: Padding(
             padding: const EdgeInsets.all(12),

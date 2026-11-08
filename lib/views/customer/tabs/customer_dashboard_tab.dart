@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
@@ -262,7 +262,7 @@ class _CustomerDashboardTabState extends State<CustomerDashboardTab> {
                       color: AppColors.figmaSoftCream,
                       borderRadius: BorderRadius.circular(14),
                       child: InkWell(
-                        borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(14),
                         onTap: _showNotificationSheet,
                         child: Container(
                           width: 44,
@@ -279,7 +279,7 @@ class _CustomerDashboardTabState extends State<CustomerDashboardTab> {
 
                     const SizedBox(width: 10),
 
-                    // User Profile Photo (matching 44x44 rounded rectangle style)
+                    // User Profile Photo (matching Figma circular style)
                     GestureDetector(
                       onTap: widget.onOpenProfile,
                       child: Container(
@@ -287,9 +287,9 @@ class _CustomerDashboardTabState extends State<CustomerDashboardTab> {
                         height: 44,
                         decoration: BoxDecoration(
                           color: AppColors.figmaSoftCream,
-                          borderRadius: BorderRadius.circular(14),
+                          shape: BoxShape.circle,
                           border: Border.all(
-                            color: AppColors.figmaSubtleBorder,
+                            color: const Color(0xFFEADBCE),
                             width: 1.5,
                           ),
                           boxShadow: [
@@ -300,8 +300,7 @@ class _CustomerDashboardTabState extends State<CustomerDashboardTab> {
                             ),
                           ],
                         ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12.5),
+                        child: ClipOval(
                           child: Image.asset(
                             'assets/images/user_avatar.png',
                             fit: BoxFit.cover,

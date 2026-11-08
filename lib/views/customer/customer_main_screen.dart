@@ -3,12 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../providers/cart_provider.dart';
+import 'tabs/customer_cart_tab.dart';
 import 'tabs/customer_dashboard_tab.dart';
 import 'tabs/customer_menu_tab.dart';
 import 'tabs/customer_orders_tab.dart';
 import 'tabs/customer_profile_tab.dart';
 import 'widgets/customer_bottom_nav.dart';
-import 'widgets/customer_cart_sheet.dart';
 
 class CustomerMainScreen extends StatefulWidget {
   final String? initialOrderType;
@@ -32,7 +32,7 @@ class _CustomerMainScreenState extends State<CustomerMainScreen> {
   @override
   void initState() {
     super.initState();
-    // Default to requested tab (0: Beranda, 1: Menu, 3: Pesanan, 4: Profil)
+    // Default to requested tab (0: Beranda, 1: Menu, 2: Keranjang, 3: Pesanan, 4: Profil)
     _currentTabIndex = widget.autoFocusSearch ? 1 : widget.initialTab;
 
     if (widget.initialOrderType != null) {
@@ -42,26 +42,8 @@ class _CustomerMainScreenState extends State<CustomerMainScreen> {
     }
   }
 
-  void _showCartSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => CustomerCartSheet(
-        onOrderPlaced: () {
-          setState(() => _currentTabIndex = 3); // Auto switch to Pesanan tab
-        },
-      ),
-    );
-  }
-
   void _onNavTap(int index) {
-    if (index == 2) {
-      // Index 2 is the center floating cart button
-      _showCartSheet();
-    } else {
-      setState(() => _currentTabIndex = index);
-    }
+    setState(() => _currentTabIndex = index);
   }
 
   @override
@@ -81,7 +63,7 @@ class _CustomerMainScreenState extends State<CustomerMainScreen> {
             children: [
               // Tab contents
               IndexedStack(
-                index: _currentTabIndex > 2 ? _currentTabIndex - 1 : _currentTabIndex,
+                index: _currentTabIndex,
                 children: [
                   // 0: Beranda
                   CustomerDashboardTab(
@@ -92,6 +74,12 @@ class _CustomerMainScreenState extends State<CustomerMainScreen> {
                   // 1: Eksplor Menu
                   CustomerMenuTab(
                     autoFocusSearch: widget.autoFocusSearch,
+                  ),
+
+                  // 2: Keranjang Saya (Refactored Checkout Tab)
+                  CustomerCartTab(
+                    onGoToMenu: () => setState(() => _currentTabIndex = 1),
+                    onOrderPlaced: () => setState(() => _currentTabIndex = 3),
                   ),
 
                   // 3: Pesanan Saya

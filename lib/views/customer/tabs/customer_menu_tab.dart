@@ -24,6 +24,12 @@ class _CustomerMenuTabState extends State<CustomerMenuTab> {
   @override
   void initState() {
     super.initState();
+    _searchController.addListener(() {
+      final text = _searchController.text.trim();
+      if (text != _searchQuery) {
+        setState(() => _searchQuery = text);
+      }
+    });
     if (widget.autoFocusSearch) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _searchFocusNode.requestFocus();

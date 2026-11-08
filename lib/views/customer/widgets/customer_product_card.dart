@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../models/product_model.dart';
+import 'customer_product_customization_sheet.dart';
 
 class CustomerProductCard extends StatelessWidget {
   final ProductModel product;
@@ -18,7 +19,8 @@ class CustomerProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLimitedStock = product.trackStock && product.stock > 0 && product.stock <= 15;
+    final isLimitedStock =
+        product.trackStock && product.stock > 0 && product.stock <= 15;
     final isOutOfStock = product.trackStock && product.stock <= 0;
 
     return Container(
@@ -26,10 +28,7 @@ class CustomerProductCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: const Color(0xFFEADBCE),
-          width: 1.2,
-        ),
+        border: Border.all(color: const Color(0xFFEADBCE), width: 1.2),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF38220F).withOpacity(0.03),
@@ -42,7 +41,9 @@ class CustomerProductCard extends StatelessWidget {
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(22),
         child: InkWell(
-          onTap: onTap ?? onAddToCart,
+          onTap:
+              onTap ??
+              () => CustomerProductCustomizationSheet.show(context, product),
           borderRadius: BorderRadius.circular(22),
           child: Padding(
             padding: const EdgeInsets.all(12),
@@ -243,7 +244,11 @@ class CustomerProductCard extends StatelessWidget {
     if (url == null || url.isEmpty) {
       return Container(
         color: AppColors.figmaSoftCream,
-        child: const Icon(Icons.coffee_rounded, color: AppColors.figmaHazelnut, size: 28),
+        child: const Icon(
+          Icons.coffee_rounded,
+          color: AppColors.figmaHazelnut,
+          size: 28,
+        ),
       );
     }
 
@@ -253,7 +258,11 @@ class CustomerProductCard extends StatelessWidget {
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => Container(
           color: AppColors.figmaSoftCream,
-          child: const Icon(Icons.coffee_rounded, color: AppColors.figmaHazelnut, size: 28),
+          child: const Icon(
+            Icons.coffee_rounded,
+            color: AppColors.figmaHazelnut,
+            size: 28,
+          ),
         ),
       );
     }
@@ -263,7 +272,11 @@ class CustomerProductCard extends StatelessWidget {
       fit: BoxFit.cover,
       errorBuilder: (_, __, ___) => Container(
         color: AppColors.figmaSoftCream,
-        child: const Icon(Icons.coffee_rounded, color: AppColors.figmaHazelnut, size: 28),
+        child: const Icon(
+          Icons.coffee_rounded,
+          color: AppColors.figmaHazelnut,
+          size: 28,
+        ),
       ),
     );
   }

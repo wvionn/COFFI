@@ -18,7 +18,7 @@ class CustomerBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
       decoration: BoxDecoration(
         color: AppColors.figmaNavDock,
         borderRadius: BorderRadius.circular(32),
@@ -43,7 +43,7 @@ class CustomerBottomNav extends StatelessWidget {
             label: 'Menu',
           ),
 
-          // 2: Keranjang (Floating Center Button - fixed layout, no clipping)
+          // 2: Keranjang (Floating Center Button - fixed layout, never clipped!)
           _buildCartButton(),
 
           // 3: Pesanan
@@ -72,7 +72,7 @@ class CustomerBottomNav extends StatelessWidget {
         onTap: () => onTap(index),
         borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -112,6 +112,8 @@ class CustomerBottomNav extends StatelessWidget {
   }
 
   Widget _buildCartButton() {
+    final isSelected = currentIndex == 2;
+
     return Expanded(
       child: InkWell(
         onTap: () => onTap(2),
@@ -121,6 +123,16 @@ class CustomerBottomNav extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Active indicator dot on top for Cart
+              Container(
+                width: 5,
+                height: 5,
+                margin: const EdgeInsets.only(bottom: 3),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isSelected ? Colors.white : Colors.transparent,
+                ),
+              ),
               Stack(
                 clipBehavior: Clip.none,
                 children: [
@@ -128,18 +140,22 @@ class CustomerBottomNav extends StatelessWidget {
                     width: 42,
                     height: 42,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF6B4B39),
+                      color: isSelected
+                          ? const Color(0xFF7D5943)
+                          : const Color(0xFF6B4B39),
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.15),
+                        color: isSelected
+                            ? Colors.white.withOpacity(0.4)
+                            : Colors.white.withOpacity(0.15),
                         width: 1.5,
                       ),
                     ),
-                    child: const Center(
+                    child: Center(
                       child: Icon(
                         Icons.shopping_bag_rounded,
                         color: Colors.white,
-                        size: 20,
+                        size: isSelected ? 21 : 20,
                       ),
                     ),
                   ),
@@ -173,7 +189,7 @@ class CustomerBottomNav extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 3),
-              // Unclipped, clean label
+              // Unclipped, clean label - NEVER truncates to "Ke...jang"
               FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(
@@ -181,8 +197,8 @@ class CustomerBottomNav extends StatelessWidget {
                   maxLines: 1,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFFE2D6CE),
+                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                    color: isSelected ? Colors.white : const Color(0xFFE2D6CE),
                   ),
                 ),
               ),

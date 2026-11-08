@@ -134,15 +134,20 @@ class CustomerProfileTab extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'COFFI STAMP CARD',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.0,
-                        color: AppColors.figmaPromoTag,
+                    Expanded(
+                      child: Text(
+                        'COFFI STAMP CARD',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.0,
+                          color: AppColors.figmaPromoTag,
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 8),
                     Text(
                       '7 / 10 Stamps',
                       style: GoogleFonts.plusJakartaSans(
@@ -203,6 +208,8 @@ class CustomerProfileTab extends StatelessWidget {
                   ),
                   subtitle: Text(
                     'Masuk sebagai Admin, Kasir, atau Dapur',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.textMuted),
                   ),
                   trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
