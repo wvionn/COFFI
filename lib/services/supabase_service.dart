@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -55,16 +56,29 @@ class SupabaseService {
   Future<void> initialize() async {
     _initDemoData();
 
+    // In widget tests, avoid platform channels & network requests
+    final isFlutterTest = !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
+    if (isFlutterTest) {
+      debugPrint('Test environment detected. Operating in Demo/Fallback mode.');
+      return;
+    }
+
     if (SupabaseConfig.isConfigured()) {
       try {
-        await Supabase.initialize(
-          url: SupabaseConfig.supabaseUrl,
-          anonKey: SupabaseConfig.supabaseAnonKey,
-        );
-        _client = Supabase.instance.client;
+        if (_client == null) {
+          try {
+            _client = Supabase.instance.client;
+          } catch (_) {
+            await Supabase.initialize(
+              url: SupabaseConfig.supabaseUrl,
+              anonKey: SupabaseConfig.supabaseAnonKey,
+            );
+            _client = Supabase.instance.client;
+          }
+        }
         _isInitialized = true;
         _setupRealtimeSubscriptions();
-        debugPrint('Supabase initialized successfully.');
+        debugPrint('Supabase connected successfully to: ${SupabaseConfig.supabaseUrl}');
       } catch (e) {
         debugPrint('Supabase initialization error: $e. Operating in Demo/Fallback mode.');
       }
@@ -725,7 +739,7 @@ class SupabaseService {
       TableModel(id: 't2', tableNumber: 'Meja 02', area: 'Indoor', capacity: 2, status: 'available'),
       TableModel(id: 't3', tableNumber: 'Meja 03', area: 'Indoor', capacity: 4, status: 'available'),
       TableModel(id: 't4', tableNumber: 'Meja 04', area: 'Indoor', capacity: 4, status: 'available'),
-      TableModel(id: 't5', tableNumber: 'Meja 05', area: 'Indoor', capacity: 6, status: 'available'),
+      TableModel(id: 't5', tableNumber: 'Meja M-05', area: 'Indoor', capacity: 4, status: 'available'),
       TableModel(id: 't6', tableNumber: 'Outdoor 01', area: 'Outdoor', capacity: 4, status: 'available'),
       TableModel(id: 't7', tableNumber: 'Outdoor 02', area: 'Outdoor', capacity: 4, status: 'available'),
       TableModel(id: 't8', tableNumber: 'VIP Lounge', area: 'VIP', capacity: 8, status: 'available'),
@@ -736,14 +750,27 @@ class SupabaseService {
         id: 'p1',
         categoryId: 'c1',
         name: 'COFFI Aren',
-        description: 'Espresso, Milk, Gula Aren',
-        price: 28000,
+        description: 'Espresso khas COFFI dengan paduan susu segar dan gula aren asli yang creamy.',
+        price: 22000,
         costPrice: 10500,
         stock: 35,
         minStock: 10,
         trackStock: true,
         isActive: true,
         imageUrl: 'assets/images/products/coffi_aren.png',
+      ),
+      ProductModel(
+        id: 'p_croissant',
+        categoryId: 'c4',
+        name: 'Almond Croissant',
+        description: 'Signature Flaky Pastry',
+        price: 25000,
+        costPrice: 10000,
+        stock: 25,
+        minStock: 5,
+        trackStock: true,
+        isActive: true,
+        imageUrl: 'assets/images/products/butter_croissant.png',
       ),
       ProductModel(
         id: 'p2',

@@ -64,6 +64,7 @@ gradle-wrapper.jar
 **/windows/flutter/ephemeral/
 
 # Secrets & Environment
+.env
 *.env
 *.env.*
 !.env.example

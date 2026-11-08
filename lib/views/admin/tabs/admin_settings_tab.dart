@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/supabase_config.dart';
 import '../../../providers/auth_provider.dart';
-import '../../../services/supabase_service.dart';
 import '../../auth/login_screen.dart';
 import '../../../models/profile_model.dart';
 
@@ -24,8 +23,8 @@ class _AdminSettingsTabState extends State<AdminSettingsTab> {
   String _cafeAddress = 'Jl. Kampus Merdeka No. 42';
   String _cafePhone = '0812-3456-7890';
   String _receiptFooter = 'Terima kasih atas kunjungan Anda!';
-  bool _pb1Enabled = true;
-  String _printerSize = '58mm';
+  // bool _pb1Enabled = true;
+  // String _printerSize = '58mm';
 
   @override
   void dispose() {
@@ -717,41 +716,6 @@ class _AdminSettingsTabState extends State<AdminSettingsTab> {
   //   );
   // }
 
-  Widget _buildInfoTile(String label, String value) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 12,
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.end,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 12.5,
-                color: AppColors.espressoDark,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   // ==========================================
   // MODAL 8: KELUAR AKUN
