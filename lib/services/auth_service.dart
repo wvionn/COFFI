@@ -149,6 +149,7 @@ class AuthService {
     required String email,
     required String password,
   }) async {
+    final cleanEmail = email.trim().toLowerCase();
     final sb = SupabaseService.instance;
     if (sb.isConnected) {
       try {
@@ -164,15 +165,57 @@ class AuthService {
               .maybeSingle();
 
           if (profileData != null) {
-            _currentProfile = ProfileModel.fromMap(profileData);
+            final profile = ProfileModel.fromMap(profileData);
+            // Safety check: auto-correct role if email is explicitly a role-specific account
+            if ((cleanEmail.contains('dapur') || cleanEmail.contains('barista')) && !profile.isDapur) {
+              _currentProfile = profile.copyWith(role: 'dapur');
+            } else if ((cleanEmail.contains('kasir') || cleanEmail.contains('cashier')) && !profile.isKasir) {
+              _currentProfile = profile.copyWith(role: 'kasir');
+            } else {
+              _currentProfile = profile;
+            }
             return _currentProfile;
           } else {
-            // Default profile from metadata
+            // Determine role dynamically from metadata, demo list, or email keywords
+            String resolvedRole = 'user';
+            String resolvedName = res.user!.userMetadata?['full_name'] ?? email.split('@').first;
+
+            if (res.user!.userMetadata?['role'] != null) {
+              resolvedRole = res.user!.userMetadata!['role'].toString().toLowerCase();
+            } else {
+              final matchedDemo = _demoStaffList.where(
+                (s) => s.email?.toLowerCase() == cleanEmail,
+              ).toList();
+              if (matchedDemo.isNotEmpty) {
+                resolvedRole = matchedDemo.first.role;
+                resolvedName = matchedDemo.first.fullName;
+              } else if (cleanEmail.contains('admin') || cleanEmail.contains('owner')) {
+                resolvedRole = 'admin';
+                resolvedName = 'Ronald (Owner)';
+              } else if (cleanEmail.contains('dapur') || cleanEmail.contains('barista') || cleanEmail.contains('kitchen')) {
+                resolvedRole = 'dapur';
+                resolvedName = 'Budi Santoso (Barista)';
+              } else if (cleanEmail.contains('kasir') || cleanEmail.contains('cashier')) {
+                resolvedRole = 'kasir';
+                resolvedName = 'Siti Rahma';
+              }
+            }
+
             _currentProfile = ProfileModel(
               id: res.user!.id,
-              fullName: res.user!.userMetadata?['full_name'] ?? email,
-              role: res.user!.userMetadata?['role'] ?? 'admin',
+              fullName: resolvedName,
+              role: resolvedRole,
+              email: cleanEmail,
+              isActive: true,
             );
+
+            // Persist the profile to Supabase so it has a persistent role
+            try {
+              await sb.client.from('profiles').upsert(_currentProfile!.toMap());
+            } catch (err) {
+              debugPrint('Notice: could not upsert profile: $err');
+            }
+
             return _currentProfile;
           }
         }
