@@ -9,6 +9,7 @@ import 'package:coffi/providers/cart_provider.dart';
 import 'package:coffi/providers/menu_provider.dart';
 import 'package:coffi/providers/order_provider.dart';
 import 'package:coffi/providers/table_provider.dart';
+import 'package:coffi/services/supabase_service.dart';
 import 'package:coffi/views/admin/admin_main_screen.dart';
 import 'package:coffi/views/auth/login_screen.dart';
 import 'package:coffi/views/auth/register_screen.dart';
@@ -33,6 +34,10 @@ Widget createTestApp(Widget home) {
 }
 
 void main() {
+  setUpAll(() async {
+    await SupabaseService.instance.initialize();
+  });
+
   testWidgets('WelcomeScreen smoke test', (WidgetTester tester) async {
     await tester.pumpWidget(const CoffiApp());
     await tester.pumpAndSettle();
@@ -184,7 +189,38 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('Kelola Produk'), findsOneWidget);
-    expect(find.text('Tambah'), findsOneWidget);
+    expect(find.text('Tambah Produk'), findsOneWidget);
+    expect(find.text('Kategori: Semua'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    // Tapping a product navigates to dedicated Edit Produk screen
+    await tester.tap(find.text('Almond Croissant').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Edit Produk'), findsOneWidget);
+    expect(find.text('Foto Produk'), findsOneWidget);
+    expect(find.text('Satuan Produk'), findsOneWidget);
+    expect(find.text('SIMPAN PRODUK'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    // Return to Kelola Produk via BATAL
+    await tester.tap(find.text('BATAL'));
+    await tester.pumpAndSettle();
+    expect(find.text('Kelola Produk'), findsOneWidget);
+
+    // Switch to Kelola Kategori sub-tab
+    await tester.tap(find.text('Kategori'));
+    await tester.pumpAndSettle();
+    expect(find.text('Kelola Kategori'), findsOneWidget);
+    expect(find.text('Tambah Kategori'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    // Switch to Kelola Varian & Add-on sub-tab
+    await tester.tap(find.text('Varian & Add-on'));
+    await tester.pumpAndSettle();
+    expect(find.text('Kelola Varian & Add-on'), findsOneWidget);
+    expect(find.text('DAFTAR ADD-ON'), findsOneWidget);
+    expect(find.text('Extra Shot'), findsOneWidget);
+    expect(find.text('Tambah Add-on'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
