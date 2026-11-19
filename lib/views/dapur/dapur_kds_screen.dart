@@ -17,7 +17,8 @@ class DapurKdsScreen extends StatefulWidget {
   State<DapurKdsScreen> createState() => _DapurKdsScreenState();
 }
 
-class _DapurKdsScreenState extends State<DapurKdsScreen> with SingleTickerProviderStateMixin {
+class _DapurKdsScreenState extends State<DapurKdsScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   Timer? _clockTimer;
   DateTime _currentTime = DateTime.now();
@@ -58,17 +59,23 @@ class _DapurKdsScreenState extends State<DapurKdsScreen> with SingleTickerProvid
     final timeFormat = DateFormat('HH:mm:ss');
 
     return Scaffold(
-      backgroundColor: AppColors.softSand, // Matches other pages (Warm Sand / Oat)
+      backgroundColor:
+          AppColors.softSand, // Matches other pages (Warm Sand / Oat)
       appBar: AppBar(
-        backgroundColor: AppColors.darkCoffeeHeader, // Matches other pages (Dark Coffee)
+        backgroundColor:
+            AppColors.darkCoffeeHeader, // Matches other pages (Dark Coffee)
         elevation: 0,
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.soup_kitchen_rounded, color: AppColors.activePillCream, size: 20),
+            const Icon(
+              Icons.soup_kitchen_rounded,
+              color: AppColors.activePillCream,
+              size: 20,
+            ),
             const SizedBox(width: 8),
             Text(
-              'Dapur & Barista',
+              'Dapur',
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.w800,
                 fontSize: 16,
@@ -106,10 +113,16 @@ class _DapurKdsScreenState extends State<DapurKdsScreen> with SingleTickerProvid
           // Bell sound alert toggle
           IconButton(
             visualDensity: VisualDensity.compact,
-            tooltip: orderProvider.soundEnabled ? 'Lonceng Aktif' : 'Lonceng Mati',
+            tooltip: orderProvider.soundEnabled
+                ? 'Lonceng Aktif'
+                : 'Lonceng Mati',
             icon: Icon(
-              orderProvider.soundEnabled ? Icons.notifications_active : Icons.notifications_off,
-              color: orderProvider.soundEnabled ? AppColors.activePillCream : Colors.white54,
+              orderProvider.soundEnabled
+                  ? Icons.notifications_active
+                  : Icons.notifications_off,
+              color: orderProvider.soundEnabled
+                  ? AppColors.activePillCream
+                  : Colors.white54,
               size: 20,
             ),
             onPressed: () => orderProvider.toggleSoundAlert(),
@@ -119,7 +132,11 @@ class _DapurKdsScreenState extends State<DapurKdsScreen> with SingleTickerProvid
           IconButton(
             visualDensity: VisualDensity.compact,
             tooltip: 'Kelola Menu Habis (Mode 86)',
-            icon: const Icon(Icons.flash_on_rounded, color: AppColors.amberOrange, size: 20),
+            icon: const Icon(
+              Icons.flash_on_rounded,
+              color: AppColors.amberOrange,
+              size: 20,
+            ),
             onPressed: () {
               Navigator.push(
                 context,
@@ -132,7 +149,11 @@ class _DapurKdsScreenState extends State<DapurKdsScreen> with SingleTickerProvid
           IconButton(
             visualDensity: VisualDensity.compact,
             tooltip: 'Keluar',
-            icon: const Icon(Icons.logout_rounded, color: Colors.white70, size: 20),
+            icon: const Icon(
+              Icons.logout_rounded,
+              color: Colors.white70,
+              size: 20,
+            ),
             onPressed: () {
               auth.logout();
               Navigator.pushReplacement(
@@ -149,10 +170,16 @@ class _DapurKdsScreenState extends State<DapurKdsScreen> with SingleTickerProvid
           indicatorWeight: 3,
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white60,
-          labelStyle: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 13),
+          labelStyle: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w800,
+            fontSize: 13,
+          ),
           tabs: [
             Tab(text: '🔥 BARU (${orderProvider.newKitchenOrders.length})'),
-            Tab(text: '🍳 PROSES (${orderProvider.inProgressKitchenOrders.length})'),
+            Tab(
+              text:
+                  '🍳 PROSES (${orderProvider.inProgressKitchenOrders.length})',
+            ),
             Tab(text: '✅ SIAP (${orderProvider.readyKitchenOrders.length})'),
           ],
         ),
@@ -162,9 +189,24 @@ class _DapurKdsScreenState extends State<DapurKdsScreen> with SingleTickerProvid
           TabBarView(
             controller: _tabController,
             children: [
-              _buildOrdersGrid(context, orderProvider.newKitchenOrders, orderProvider, 'pending'),
-              _buildOrdersGrid(context, orderProvider.inProgressKitchenOrders, orderProvider, 'diproses'),
-              _buildOrdersGrid(context, orderProvider.readyKitchenOrders, orderProvider, 'siap'),
+              _buildOrdersGrid(
+                context,
+                orderProvider.newKitchenOrders,
+                orderProvider,
+                'pending',
+              ),
+              _buildOrdersGrid(
+                context,
+                orderProvider.inProgressKitchenOrders,
+                orderProvider,
+                'diproses',
+              ),
+              _buildOrdersGrid(
+                context,
+                orderProvider.readyKitchenOrders,
+                orderProvider,
+                'siap',
+              ),
             ],
           ),
 
@@ -182,7 +224,11 @@ class _DapurKdsScreenState extends State<DapurKdsScreen> with SingleTickerProvid
                   padding: const EdgeInsets.all(16),
                   child: Row(
                     children: [
-                      const Icon(Icons.notifications_active, color: AppColors.activePillCream, size: 28),
+                      const Icon(
+                        Icons.notifications_active,
+                        color: AppColors.activePillCream,
+                        size: 28,
+                      ),
                       const SizedBox(width: 14),
                       Expanded(
                         child: Column(
@@ -217,7 +263,10 @@ class _DapurKdsScreenState extends State<DapurKdsScreen> with SingleTickerProvid
                           orderProvider.dismissAlert();
                           _tabController.animateTo(0);
                         },
-                        child: const Text('Lihat Tiket', style: TextStyle(fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          'Lihat Tiket',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ],
                   ),
@@ -250,7 +299,9 @@ class _DapurKdsScreenState extends State<DapurKdsScreen> with SingleTickerProvid
               child: Icon(
                 stage == 'pending'
                     ? Icons.check_circle_outline_rounded
-                    : (stage == 'diproses' ? Icons.soup_kitchen_outlined : Icons.done_all_rounded),
+                    : (stage == 'diproses'
+                          ? Icons.soup_kitchen_outlined
+                          : Icons.done_all_rounded),
                 size: 48,
                 color: AppColors.roastedCoffee.withOpacity(0.4),
               ),
@@ -259,7 +310,9 @@ class _DapurKdsScreenState extends State<DapurKdsScreen> with SingleTickerProvid
             Text(
               stage == 'pending'
                   ? 'Tidak ada antrean pesanan baru'
-                  : (stage == 'diproses' ? 'Tidak ada pesanan sedang dimasak' : 'Belum ada pesanan yang siap'),
+                  : (stage == 'diproses'
+                        ? 'Tidak ada pesanan sedang dimasak'
+                        : 'Belum ada pesanan yang siap'),
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
@@ -326,7 +379,9 @@ class _DapurKdsScreenState extends State<DapurKdsScreen> with SingleTickerProvid
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: elapsedMinutes >= 15 ? AppColors.berryRed : const Color(0xFFE2DCD5),
+          color: elapsedMinutes >= 15
+              ? AppColors.berryRed
+              : const Color(0xFFE2DCD5),
           width: elapsedMinutes >= 15 ? 2.0 : 1.2,
         ),
         boxShadow: [
@@ -378,7 +433,10 @@ class _DapurKdsScreenState extends State<DapurKdsScreen> with SingleTickerProvid
                 ),
                 // Elapsed Timer Badge
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: timerColor,
                     borderRadius: BorderRadius.circular(6),
@@ -386,7 +444,11 @@ class _DapurKdsScreenState extends State<DapurKdsScreen> with SingleTickerProvid
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.timer_outlined, color: Colors.white, size: 12),
+                      const Icon(
+                        Icons.timer_outlined,
+                        color: Colors.white,
+                        size: 12,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         order.elapsedTimeString,
@@ -418,7 +480,10 @@ class _DapurKdsScreenState extends State<DapurKdsScreen> with SingleTickerProvid
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.activePillCream,
                     borderRadius: BorderRadius.circular(6),
@@ -441,7 +506,10 @@ class _DapurKdsScreenState extends State<DapurKdsScreen> with SingleTickerProvid
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFFBEB), // Soft warm cream
                   borderRadius: BorderRadius.circular(8),
@@ -449,7 +517,11 @@ class _DapurKdsScreenState extends State<DapurKdsScreen> with SingleTickerProvid
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.note_alt_outlined, size: 14, color: AppColors.amberOrange),
+                    const Icon(
+                      Icons.note_alt_outlined,
+                      size: 14,
+                      color: AppColors.amberOrange,
+                    ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
@@ -477,16 +549,27 @@ class _DapurKdsScreenState extends State<DapurKdsScreen> with SingleTickerProvid
                   padding: const EdgeInsets.only(bottom: 8),
                   child: InkWell(
                     onTap: () {
-                      provider.toggleItemChecklist(order.id, item.id, item.isCompleted);
+                      provider.toggleItemChecklist(
+                        order.id,
+                        item.id,
+                        item.isCompleted,
+                      );
                     },
                     borderRadius: BorderRadius.circular(10),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
-                        color: item.isCompleted ? const Color(0xFFF9FAFB) : const Color(0xFFFAFAF9),
+                        color: item.isCompleted
+                            ? const Color(0xFFF9FAFB)
+                            : const Color(0xFFFAFAF9),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: item.isCompleted ? const Color(0xFFE5E7EB) : const Color(0xFFEFECE6),
+                          color: item.isCompleted
+                              ? const Color(0xFFE5E7EB)
+                              : const Color(0xFFEFECE6),
                         ),
                       ),
                       child: Column(
@@ -495,8 +578,12 @@ class _DapurKdsScreenState extends State<DapurKdsScreen> with SingleTickerProvid
                           Row(
                             children: [
                               Icon(
-                                item.isCompleted ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                                color: item.isCompleted ? AppColors.matchaGreen : AppColors.textMuted,
+                                item.isCompleted
+                                    ? Icons.check_circle_rounded
+                                    : Icons.radio_button_unchecked_rounded,
+                                color: item.isCompleted
+                                    ? AppColors.matchaGreen
+                                    : AppColors.textMuted,
                                 size: 20,
                               ),
                               const SizedBox(width: 10),
@@ -506,8 +593,12 @@ class _DapurKdsScreenState extends State<DapurKdsScreen> with SingleTickerProvid
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 13.5,
                                     fontWeight: FontWeight.w800,
-                                    color: item.isCompleted ? AppColors.textMuted : AppColors.espressoDark,
-                                    decoration: item.isCompleted ? TextDecoration.lineThrough : null,
+                                    color: item.isCompleted
+                                        ? AppColors.textMuted
+                                        : AppColors.espressoDark,
+                                    decoration: item.isCompleted
+                                        ? TextDecoration.lineThrough
+                                        : null,
                                   ),
                                 ),
                               ),
@@ -518,16 +609,27 @@ class _DapurKdsScreenState extends State<DapurKdsScreen> with SingleTickerProvid
                             const SizedBox(height: 5),
                             Container(
                               margin: const EdgeInsets.only(left: 30),
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFEF3C7), // Warm yellow/cream highlight
+                                color: const Color(
+                                  0xFFFEF3C7,
+                                ), // Warm yellow/cream highlight
                                 borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: const Color(0xFFFCD34D)),
+                                border: Border.all(
+                                  color: const Color(0xFFFCD34D),
+                                ),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.info_outline_rounded, size: 12, color: Color(0xFF92400E)),
+                                  const Icon(
+                                    Icons.info_outline_rounded,
+                                    size: 12,
+                                    color: Color(0xFF92400E),
+                                  ),
                                   const SizedBox(width: 5),
                                   Flexible(
                                     child: Text(
@@ -565,13 +667,19 @@ class _DapurKdsScreenState extends State<DapurKdsScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildActionButton(String stage, OrderModel order, OrderProvider provider) {
+  Widget _buildActionButton(
+    String stage,
+    OrderModel order,
+    OrderProvider provider,
+  ) {
     if (stage == 'pending') {
       return ElevatedButton.icon(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.roastedCoffee,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           elevation: 0,
         ),
         onPressed: () async {
@@ -580,7 +688,10 @@ class _DapurKdsScreenState extends State<DapurKdsScreen> with SingleTickerProvid
         icon: const Icon(Icons.soup_kitchen_rounded, size: 18),
         label: Text(
           'TERIMA & MULAI PROSES',
-          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 13),
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w800,
+            fontSize: 13,
+          ),
         ),
       );
     } else if (stage == 'diproses') {
@@ -588,7 +699,9 @@ class _DapurKdsScreenState extends State<DapurKdsScreen> with SingleTickerProvid
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.matchaGreen,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           elevation: 0,
         ),
         onPressed: () async {
@@ -597,7 +710,10 @@ class _DapurKdsScreenState extends State<DapurKdsScreen> with SingleTickerProvid
         icon: const Icon(Icons.check_circle_rounded, size: 18),
         label: Text(
           'PESANAN SELESAI (SIAP DIPANGGIL)',
-          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 13),
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w800,
+            fontSize: 13,
+          ),
         ),
       );
     } else {
@@ -605,7 +721,9 @@ class _DapurKdsScreenState extends State<DapurKdsScreen> with SingleTickerProvid
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.coldBrewBlue,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           elevation: 0,
         ),
         onPressed: () async {
@@ -614,7 +732,10 @@ class _DapurKdsScreenState extends State<DapurKdsScreen> with SingleTickerProvid
         icon: const Icon(Icons.done_all_rounded, size: 18),
         label: Text(
           'SUDAH DIAMBIL PELANGGAN',
-          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 13),
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w800,
+            fontSize: 13,
+          ),
         ),
       );
     }
