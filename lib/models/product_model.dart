@@ -10,6 +10,7 @@ class ProductModel {
   final bool trackStock;
   final bool isActive;
   final String? imageUrl;
+  final String? unit; // In-app display unit: 'cup', 'pcs', 'botol', 'pack', 'porsi', 'kg', 'liter'
 
   ProductModel({
     required this.id,
@@ -23,7 +24,10 @@ class ProductModel {
     this.trackStock = true,
     this.isActive = true,
     this.imageUrl,
+    this.unit = 'cup',
   });
+
+  String get displayUnit => (unit != null && unit!.isNotEmpty) ? unit! : 'cup';
 
   double get marginPercentage {
     if (price <= 0) return 0.0;
@@ -47,6 +51,7 @@ class ProductModel {
       trackStock: map['track_stock'] == null ? true : (map['track_stock'] as bool),
       isActive: map['is_active'] == null ? true : (map['is_active'] as bool),
       imageUrl: map['image_url']?.toString(),
+      unit: map['unit']?.toString() ?? 'cup',
     );
   }
 
@@ -78,6 +83,7 @@ class ProductModel {
     bool? trackStock,
     bool? isActive,
     String? imageUrl,
+    String? unit,
   }) {
     return ProductModel(
       id: id ?? this.id,
@@ -91,6 +97,7 @@ class ProductModel {
       trackStock: trackStock ?? this.trackStock,
       isActive: isActive ?? this.isActive,
       imageUrl: imageUrl ?? this.imageUrl,
+      unit: unit ?? this.unit,
     );
   }
 }

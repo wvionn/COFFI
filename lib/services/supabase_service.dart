@@ -156,6 +156,39 @@ class SupabaseService {
     return List.from(_demoCategories);
   }
 
+  Future<bool> saveCategory(CategoryModel category) async {
+    if (isConnected && _isValidUuid(category.id)) {
+      try {
+        await client.from('categories').upsert(category.toMap());
+        return true;
+      } catch (e) {
+        debugPrint('Error saveCategory: $e');
+      }
+    }
+
+    final index = _demoCategories.indexWhere((c) => c.id == category.id);
+    if (index != -1) {
+      _demoCategories[index] = category;
+    } else {
+      _demoCategories.add(category);
+    }
+    return true;
+  }
+
+  Future<bool> deleteCategory(String categoryId) async {
+    if (isConnected && _isValidUuid(categoryId)) {
+      try {
+        await client.from('categories').delete().eq('id', categoryId);
+        return true;
+      } catch (e) {
+        debugPrint('Error deleteCategory: $e');
+      }
+    }
+
+    _demoCategories.removeWhere((c) => c.id == categoryId);
+    return true;
+  }
+
   // =========================================================================
   // CAFE TABLES
   // =========================================================================
@@ -303,9 +336,13 @@ class SupabaseService {
   }
 
   Future<bool> saveProduct(ProductModel product) async {
-    if (isConnected) {
+    if (isConnected && _isValidUuid(product.id)) {
       try {
-        await client.from('products').upsert(product.toMap());
+        final payload = Map<String, dynamic>.from(product.toMap());
+        if (!_isValidUuid(payload['category_id'])) {
+          payload['category_id'] = null;
+        }
+        await client.from('products').upsert(payload);
         await fetchProducts();
         return true;
       } catch (e) {
@@ -323,9 +360,25 @@ class SupabaseService {
     return true;
   }
 
+  Future<bool> deleteProduct(String productId) async {
+    if (isConnected && _isValidUuid(productId)) {
+      try {
+        await client.from('products').delete().eq('id', productId);
+        await fetchProducts();
+        return true;
+      } catch (e) {
+        debugPrint('Error deleteProduct: $e');
+      }
+    }
+
+    _demoProducts.removeWhere((p) => p.id == productId);
+    _productsStreamController.add(List.from(_demoProducts));
+    return true;
+  }
+
   Future<bool> toggleProductSoldOut(String productId, bool isSoldOut) async {
-    // Mode 86: if soldOut -> isActive = false or stock = 0
-    if (isConnected) {
+    // Mode 86: if soldOut -> isActive = false
+    if (isConnected && _isValidUuid(productId)) {
       try {
         await client.from('products').update({
           'is_active': !isSoldOut,
@@ -371,19 +424,67 @@ class SupabaseService {
     required int addQuantity,
     required double buyCost,
     String? notes,
+    int? currentStock,
+    String? productName,
   }) async {
-    final product = _demoProducts.firstWhere(
-      (p) => p.id == productId,
-      orElse: () => ProductModel(id: productId, name: 'Produk', price: 0),
-    );
+    int before = currentStock ?? 0;
+    String resolvedName = productName ?? 'Produk';
 
-    final before = product.stock;
+    final demoIndex = _demoProducts.indexWhere((p) => p.id == productId);
+    if (demoIndex != -1) {
+      before = currentStock ?? _demoProducts[demoIndex].stock;
+      resolvedName = productName ?? _demoProducts[demoIndex].name;
+    }
+
+    if (isConnected && _isValidUuid(productId)) {
+      try {
+        final existing = await client
+            .from('products')
+            .select('name, stock')
+            .eq('id', productId)
+            .maybeSingle();
+        if (existing != null) {
+          before = (existing['stock'] as num?)?.toInt() ?? before;
+          resolvedName = existing['name']?.toString() ?? resolvedName;
+        }
+
+        final after = before + addQuantity;
+        final movement = StockMovementModel(
+          id: const Uuid().v4(),
+          productId: productId,
+          productName: resolvedName,
+          type: 'in',
+          quantity: addQuantity,
+          stockBefore: before,
+          stockAfter: after,
+          notes: notes ?? 'Restock masuk',
+          createdAt: DateTime.now(),
+        );
+
+        await client.from('products').update({
+          'stock': after,
+          'is_active': true,
+        }).eq('id', productId);
+
+        try {
+          await client.from('stock_movements').insert(movement.toMap());
+        } catch (moveErr) {
+          debugPrint('Notice: stock_movements insert failed: $moveErr');
+          _demoStockMovements.insert(0, movement);
+        }
+
+        await fetchProducts();
+        return true;
+      } catch (e) {
+        debugPrint('Error restockProduct (Supabase): $e');
+      }
+    }
+
     final after = before + addQuantity;
-
     final movement = StockMovementModel(
       id: const Uuid().v4(),
       productId: productId,
-      productName: product.name,
+      productName: resolvedName,
       type: 'in',
       quantity: addQuantity,
       stockBefore: before,
@@ -392,43 +493,83 @@ class SupabaseService {
       createdAt: DateTime.now(),
     );
 
-    if (isConnected) {
-      try {
-        await client.from('products').update({'stock': after}).eq('id', productId);
-        await client.from('stock_movements').insert(movement.toMap());
-        await fetchProducts();
-        return true;
-      } catch (e) {
-        debugPrint('Error restockProduct: $e');
-      }
+    if (demoIndex != -1) {
+      _demoProducts[demoIndex] = _demoProducts[demoIndex].copyWith(
+        stock: after,
+        isActive: true,
+      );
+      _demoStockMovements.insert(0, movement);
+      _productsStreamController.add(List.from(_demoProducts));
+      return true;
     }
-
-    final pIndex = _demoProducts.indexWhere((p) => p.id == productId);
-    if (pIndex != -1) {
-      _demoProducts[pIndex] = _demoProducts[pIndex].copyWith(stock: after);
-    }
-    _demoStockMovements.insert(0, movement);
-    _productsStreamController.add(List.from(_demoProducts));
-    return true;
+    return false;
   }
 
   Future<bool> stockOpname({
     required String productId,
     required int actualPhysicalStock,
     required String reason,
+    int? currentStock,
+    String? productName,
   }) async {
-    final product = _demoProducts.firstWhere(
-      (p) => p.id == productId,
-      orElse: () => ProductModel(id: productId, name: 'Produk', price: 0),
-    );
+    int before = currentStock ?? 0;
+    String resolvedName = productName ?? 'Produk';
 
-    final before = product.stock;
+    final demoIndex = _demoProducts.indexWhere((p) => p.id == productId);
+    if (demoIndex != -1) {
+      before = currentStock ?? _demoProducts[demoIndex].stock;
+      resolvedName = productName ?? _demoProducts[demoIndex].name;
+    }
+
+    if (isConnected && _isValidUuid(productId)) {
+      try {
+        final existing = await client
+            .from('products')
+            .select('name, stock')
+            .eq('id', productId)
+            .maybeSingle();
+        if (existing != null) {
+          before = (existing['stock'] as num?)?.toInt() ?? before;
+          resolvedName = existing['name']?.toString() ?? resolvedName;
+        }
+
+        final diff = actualPhysicalStock - before;
+        final movement = StockMovementModel(
+          id: const Uuid().v4(),
+          productId: productId,
+          productName: resolvedName,
+          type: 'adjustment',
+          quantity: diff,
+          stockBefore: before,
+          stockAfter: actualPhysicalStock,
+          notes: 'Opname: $reason',
+          createdAt: DateTime.now(),
+        );
+
+        await client.from('products').update({
+          'stock': actualPhysicalStock,
+          'is_active': actualPhysicalStock > 0,
+        }).eq('id', productId);
+
+        try {
+          await client.from('stock_movements').insert(movement.toMap());
+        } catch (moveErr) {
+          debugPrint('Notice: stock_movements insert failed: $moveErr');
+          _demoStockMovements.insert(0, movement);
+        }
+
+        await fetchProducts();
+        return true;
+      } catch (e) {
+        debugPrint('Error stockOpname (Supabase): $e');
+      }
+    }
+
     final diff = actualPhysicalStock - before;
-
     final movement = StockMovementModel(
       id: const Uuid().v4(),
       productId: productId,
-      productName: product.name,
+      productName: resolvedName,
       type: 'adjustment',
       quantity: diff,
       stockBefore: before,
@@ -437,24 +578,16 @@ class SupabaseService {
       createdAt: DateTime.now(),
     );
 
-    if (isConnected) {
-      try {
-        await client.from('products').update({'stock': actualPhysicalStock}).eq('id', productId);
-        await client.from('stock_movements').insert(movement.toMap());
-        await fetchProducts();
-        return true;
-      } catch (e) {
-        debugPrint('Error stockOpname: $e');
-      }
+    if (demoIndex != -1) {
+      _demoProducts[demoIndex] = _demoProducts[demoIndex].copyWith(
+        stock: actualPhysicalStock,
+        isActive: actualPhysicalStock > 0,
+      );
+      _demoStockMovements.insert(0, movement);
+      _productsStreamController.add(List.from(_demoProducts));
+      return true;
     }
-
-    final pIndex = _demoProducts.indexWhere((p) => p.id == productId);
-    if (pIndex != -1) {
-      _demoProducts[pIndex] = _demoProducts[pIndex].copyWith(stock: actualPhysicalStock);
-    }
-    _demoStockMovements.insert(0, movement);
-    _productsStreamController.add(List.from(_demoProducts));
-    return true;
+    return false;
   }
 
   // =========================================================================
