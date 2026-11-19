@@ -3,11 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:coffi/core/theme/app_theme.dart';
 import 'package:coffi/main.dart';
+import 'package:coffi/providers/admin_dashboard_provider.dart';
 import 'package:coffi/providers/auth_provider.dart';
 import 'package:coffi/providers/cart_provider.dart';
 import 'package:coffi/providers/menu_provider.dart';
 import 'package:coffi/providers/order_provider.dart';
 import 'package:coffi/providers/table_provider.dart';
+import 'package:coffi/views/admin/admin_main_screen.dart';
 import 'package:coffi/views/auth/login_screen.dart';
 import 'package:coffi/views/auth/register_screen.dart';
 import 'package:coffi/views/auth/welcome_screen.dart';
@@ -21,6 +23,7 @@ Widget createTestApp(Widget home) {
       ChangeNotifierProvider(create: (_) => MenuProvider()),
       ChangeNotifierProvider(create: (_) => CartProvider()),
       ChangeNotifierProvider(create: (_) => OrderProvider()),
+      ChangeNotifierProvider(create: (_) => AdminDashboardProvider()),
     ],
     child: MaterialApp(
       theme: AppTheme.lightTheme,
@@ -144,5 +147,44 @@ void main() {
     // Check Eksplor Menu screen
     expect(find.text('Eksplor Menu'), findsOneWidget);
     expect(find.text('Semua'), findsOneWidget);
+  });
+
+  testWidgets('AdminMainScreen Dashboard and Kelola Produk render and work interactively', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(createTestApp(const AdminMainScreen()));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    // Verify Senopati Branch is removed and core dashboard elements are shown
+    expect(find.text('Senopati Branch'), findsNothing);
+    expect(find.text('TOTAL PENJUALAN'), findsOneWidget);
+    expect(find.text('TRANSAKSI'), findsOneWidget);
+    expect(find.text('STOK KRITIS'), findsWidgets);
+    expect(find.text('Grafik Penjualan'), findsOneWidget);
+    expect(find.text('HARI INI'), findsOneWidget);
+    expect(find.text('Menu Terlaris'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    // Test interactive period selector on Grafik Penjualan
+    await tester.tap(find.text('HARI INI'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('7 Hari Terakhir'));
+    await tester.pumpAndSettle();
+    expect(find.text('7 HARI'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    // Test LIHAT SEMUA navigates to Kelola Produk tab
+    await tester.ensureVisible(find.text('LIHAT SEMUA'));
+    await tester.tap(find.text('LIHAT SEMUA'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('Kelola Produk'), findsOneWidget);
+    expect(find.text('Tambah'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }
