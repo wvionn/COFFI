@@ -12,12 +12,13 @@ class OrderModel {
   final String? deliveryAddress;
   final String? cashierId;
   final String? cashierName;
-  final String status; // 'menunggu_validasi', 'pending', 'diproses', 'siap', 'dikirim', 'selesai', 'dibatalkan'
+  final String
+  status; // 'menunggu_validasi', 'pending', 'diproses', 'siap', 'dikirim', 'selesai', 'dibatalkan'
   final double subtotalAmount;
   final double taxAmount; // PB1 10%
   final double totalAmount;
   final double totalHpp;
-  final String? notes;
+  final String? notes; // test
   final DateTime createdAt;
   final DateTime? updatedAt;
   final List<OrderItemModel> items;
@@ -66,7 +67,10 @@ class OrderModel {
     return '$minutes:$seconds';
   }
 
-  factory OrderModel.fromMap(Map<String, dynamic> map, {List<OrderItemModel>? items}) {
+  factory OrderModel.fromMap(
+    Map<String, dynamic> map, {
+    List<OrderItemModel>? items,
+  }) {
     DateTime parseDate(dynamic val) {
       if (val == null) return DateTime.now();
       if (val is DateTime) return val;
@@ -92,7 +96,9 @@ class OrderModel {
       totalHpp: (map['total_hpp'] as num?)?.toDouble() ?? 0.0,
       notes: map['notes']?.toString(),
       createdAt: parseDate(map['created_at']),
-      updatedAt: map['updated_at'] != null ? parseDate(map['updated_at']) : null,
+      updatedAt: map['updated_at'] != null
+          ? parseDate(map['updated_at'])
+          : null,
       items: items ?? [],
     );
   }
