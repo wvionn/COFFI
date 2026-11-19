@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/utils/currency_formatter.dart';
 import '../../../models/product_model.dart';
 import '../../../providers/menu_provider.dart';
 
@@ -31,7 +32,9 @@ class _AdminStockTabState extends State<AdminStockTab> with SingleTickerProvider
   void _showRestockModal(BuildContext context, ProductModel product) {
     final menu = context.read<MenuProvider>();
     final qtyController = TextEditingController(text: '10');
-    final costController = TextEditingController(text: (product.costPrice * 10).toInt().toString());
+    final costController = TextEditingController(
+      text: CurrencyFormatter.formatNumber(product.costPrice * 10),
+    );
     final notesController = TextEditingController(text: 'Restock supplier');
 
     showDialog(
@@ -48,7 +51,12 @@ class _AdminStockTabState extends State<AdminStockTab> with SingleTickerProvider
             const SizedBox(height: 12),
             Text('Total Biaya Beli Modal:', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
-            TextField(controller: costController, keyboardType: TextInputType.number, decoration: const InputDecoration(prefixText: 'Rp ')),
+            TextField(
+              controller: costController,
+              keyboardType: TextInputType.number,
+              inputFormatters: [ThousandsSeparatorInputFormatter()],
+              decoration: const InputDecoration(prefixText: 'Rp '),
+            ),
             const SizedBox(height: 12),
             Text('Catatan Restock:', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
@@ -60,7 +68,7 @@ class _AdminStockTabState extends State<AdminStockTab> with SingleTickerProvider
           ElevatedButton(
             onPressed: () {
               final qty = int.tryParse(qtyController.text) ?? 0;
-              final cost = double.tryParse(costController.text) ?? 0.0;
+              final cost = CurrencyFormatter.parse(costController.text);
               if (qty > 0) {
                 menu.restockProduct(
                   productId: product.id,

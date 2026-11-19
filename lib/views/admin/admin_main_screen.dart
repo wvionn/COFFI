@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../core/constants/app_colors.dart';
 import 'tabs/admin_dashboard_tab.dart';
 import 'tabs/admin_menu_tab.dart';
 import 'tabs/admin_reports_tab.dart';
@@ -42,7 +41,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
     ];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF6F1),
+      backgroundColor: const Color(0xFFFAF6F0),
       body: IndexedStack(
         index: _currentIndex,
         children: tabs,
@@ -110,7 +109,7 @@ class _AdminBottomNavBar extends StatelessWidget {
                         height: 38,
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? AppColors.figmaCoffee
+                              ? const Color(0xFF4A2E21)
                               : Colors.transparent,
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -132,7 +131,7 @@ class _AdminBottomNavBar extends StatelessWidget {
                           fontWeight:
                               isSelected ? FontWeight.w700 : FontWeight.w500,
                           color: isSelected
-                              ? AppColors.figmaCoffee
+                              ? const Color(0xFF4A2E21)
                               : const Color(0xFFA88B77),
                         ),
                       ),

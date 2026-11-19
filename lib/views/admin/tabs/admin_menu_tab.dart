@@ -4,11 +4,20 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../models/addon_model.dart';
+import '../../../models/category_model.dart';
 import '../../../models/product_model.dart';
 import '../../../providers/menu_provider.dart';
+import '../screens/admin_product_form_screen.dart';
+import '../widgets/admin_addon_view.dart';
+import '../widgets/admin_category_view.dart';
 import '../widgets/admin_header.dart';
 
-enum _ProductStatusFilter { all, active, lowStock }
+enum _ProductModuleSection { produk, kategori, varian }
+
+enum _StockFilter { all, active, lowStock, outOfStock }
+
+enum _ProductSort { nameAsc, priceAsc, priceDesc, stockAsc }
 
 class AdminMenuTab extends StatefulWidget {
   final Function(int)? onTabNavigate;
@@ -21,7 +30,42 @@ class AdminMenuTab extends StatefulWidget {
 
 class _AdminMenuTabState extends State<AdminMenuTab> {
   final TextEditingController _searchController = TextEditingController();
-  _ProductStatusFilter _statusFilter = _ProductStatusFilter.all;
+  _ProductModuleSection? _activeSectionField = _ProductModuleSection.produk;
+  _StockFilter? _stockFilterField = _StockFilter.all;
+  _ProductSort? _sortModeField = _ProductSort.nameAsc;
+  String? _subViewSearchQueryField = '';
+
+  _ProductModuleSection get _activeSection =>
+      _activeSectionField ?? _ProductModuleSection.produk;
+  set _activeSection(_ProductModuleSection value) =>
+      _activeSectionField = value;
+
+  _StockFilter get _stockFilter => _stockFilterField ?? _StockFilter.all;
+  set _stockFilter(_StockFilter value) => _stockFilterField = value;
+
+  _ProductSort get _sortMode => _sortModeField ?? _ProductSort.nameAsc;
+  set _sortMode(_ProductSort value) => _sortModeField = value;
+
+  String get _subViewSearchQuery => _subViewSearchQueryField ?? '';
+  set _subViewSearchQuery(String value) => _subViewSearchQueryField = value;
+
+  static const List<String> _addonGroupOptions = [
+    'TOPPING',
+    'SUSU SUBSTITUSI',
+    'FLAVOR',
+    'TEMPERATURE',
+    'SUGAR LEVEL',
+  ];
+
+  static const List<String> _addonPresetPhotos = [
+    'assets/images/products/coffi_aren.png',
+    'assets/images/products/matcha_latte.png',
+    'assets/images/products/cafe_latte.png',
+    'assets/images/products/dark_choco.png',
+    'assets/images/products/iced_americano.png',
+    'assets/images/products/royal_thai_tea.png',
+    'assets/images/products/butter_croissant.png',
+  ];
 
   @override
   void dispose() {
@@ -29,96 +73,295 @@ class _AdminMenuTabState extends State<AdminMenuTab> {
     super.dispose();
   }
 
+  void _switchSection(_ProductModuleSection section) {
+    if (_activeSection == section) return;
+    setState(() {
+      _activeSection = section;
+      _subViewSearchQuery = '';
+      if (section == _ProductModuleSection.produk) {
+        final menuQuery = context.read<MenuProvider>().searchQuery;
+        _searchController.text = menuQuery;
+      } else {
+        _searchController.clear();
+      }
+    });
+  }
+
   String _resolveCategoryName(MenuProvider menu, String? categoryId) {
-    if (categoryId == null) return 'Umum';
+    if (categoryId == null) return 'UMUM';
     for (final cat in menu.categories) {
       if (cat.id == categoryId) return cat.name;
     }
-    return 'Umum';
+    return 'UMUM';
   }
 
-  void _showQuickRestockDialog(BuildContext context, ProductModel product) {
-    final menu = context.read<MenuProvider>();
-    final qtyController = TextEditingController(text: '10');
-    final costController = TextEditingController(
-      text: (product.costPrice * 10).toInt().toString(),
+  Future<void> _openProductForm(
+    BuildContext context, {
+    ProductModel? product,
+  }) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AdminProductFormScreen(existingProduct: product),
+      ),
     );
-    final notesController = TextEditingController(text: 'Restock cepat admin');
+  }
+
+  // =========================================================================
+  // FILTER & SORT BOTTOM SHEET (PRODUK)
+  // =========================================================================
+
+  void _showFilterSortSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.figmaSubtleBorder,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Filter & Urutkan Produk',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16.5,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.figmaCoffee,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _stockFilter = _StockFilter.all;
+                          _sortMode = _ProductSort.nameAsc;
+                        });
+                        setModalState(() {});
+                      },
+                      child: Text(
+                        'Reset',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF9C7F6C),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'STATUS STOK',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                    color: const Color(0xFF9C7F6C),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _buildSheetPill(
+                      label: 'Semua',
+                      selected: _stockFilter == _StockFilter.all,
+                      onTap: () {
+                        setState(() => _stockFilter = _StockFilter.all);
+                        setModalState(() {});
+                      },
+                    ),
+                    _buildSheetPill(
+                      label: 'Tersedia / Aktif',
+                      selected: _stockFilter == _StockFilter.active,
+                      onTap: () {
+                        setState(() => _stockFilter = _StockFilter.active);
+                        setModalState(() {});
+                      },
+                    ),
+                    _buildSheetPill(
+                      label: 'Stok Kritis',
+                      selected: _stockFilter == _StockFilter.lowStock,
+                      onTap: () {
+                        setState(() => _stockFilter = _StockFilter.lowStock);
+                        setModalState(() {});
+                      },
+                    ),
+                    _buildSheetPill(
+                      label: 'Habis / Nonaktif',
+                      selected: _stockFilter == _StockFilter.outOfStock,
+                      onTap: () {
+                        setState(() => _stockFilter = _StockFilter.outOfStock);
+                        setModalState(() {});
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  'URUTKAN BERDASARKAN',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                    color: const Color(0xFF9C7F6C),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _buildSheetPill(
+                      label: 'Nama (A–Z)',
+                      selected: _sortMode == _ProductSort.nameAsc,
+                      onTap: () {
+                        setState(() => _sortMode = _ProductSort.nameAsc);
+                        setModalState(() {});
+                      },
+                    ),
+                    _buildSheetPill(
+                      label: 'Harga Termurah',
+                      selected: _sortMode == _ProductSort.priceAsc,
+                      onTap: () {
+                        setState(() => _sortMode = _ProductSort.priceAsc);
+                        setModalState(() {});
+                      },
+                    ),
+                    _buildSheetPill(
+                      label: 'Harga Termahal',
+                      selected: _sortMode == _ProductSort.priceDesc,
+                      onTap: () {
+                        setState(() => _sortMode = _ProductSort.priceDesc);
+                        setModalState(() {});
+                      },
+                    ),
+                    _buildSheetPill(
+                      label: 'Stok Paling Sedikit',
+                      selected: _sortMode == _ProductSort.stockAsc,
+                      onTap: () {
+                        setState(() => _sortMode = _ProductSort.stockAsc);
+                        setModalState(() {});
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.figmaCoffee,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    onPressed: () => Navigator.pop(ctx),
+                    child: Text(
+                      'TERAPKAN',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSheetPill({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: selected ? AppColors.figmaCoffee : const Color(0xFFFAF5F0),
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected ? AppColors.figmaCoffee : const Color(0xFFE8DDD3),
+            ),
+          ),
+          child: Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: selected ? Colors.white : AppColors.figmaCoffee,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // =========================================================================
+  // DELETE CONFIRMATION DIALOGS (KATEGORI & ADD-ON)
+  // =========================================================================
+
+  void _confirmDeleteCategory(BuildContext context, CategoryModel category) {
+    final menu = context.read<MenuProvider>();
+    final productCount =
+        menu.products.where((p) => p.categoryId == category.id).length;
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-        title: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: AppColors.figmaSoftCream,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.add_box_rounded,
-                color: AppColors.figmaCoffee,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Restock ${product.name}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.plusJakartaSans(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 15.5,
-                  color: AppColors.figmaCoffee,
-                ),
-              ),
-            ),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Stok saat ini: ${product.stock} porsi (Min: ${product.minStock})',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12,
-                  color: const Color(0xFF9C7F6C),
-                ),
-              ),
-              const SizedBox(height: 14),
-              _buildFieldLabel('Jumlah Tambah Stok'),
-              const SizedBox(height: 6),
-              TextField(
-                controller: qtyController,
-                keyboardType: TextInputType.number,
-                decoration: _inputDecoration(hint: '10'),
-              ),
-              const SizedBox(height: 12),
-              _buildFieldLabel('Total Biaya Modal'),
-              const SizedBox(height: 6),
-              TextField(
-                controller: costController,
-                keyboardType: TextInputType.number,
-                decoration: _inputDecoration(hint: '0', prefixText: 'Rp '),
-              ),
-              const SizedBox(height: 12),
-              _buildFieldLabel('Catatan'),
-              const SizedBox(height: 6),
-              TextField(
-                controller: notesController,
-                decoration: _inputDecoration(hint: 'Catatan restock...'),
-              ),
-            ],
+        title: Text(
+          'Hapus Kategori?',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 16.5,
+            fontWeight: FontWeight.w800,
+            color: AppColors.figmaCoffee,
           ),
         ),
-        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        content: Text(
+          productCount > 0
+              ? 'Kategori "${category.name}" saat ini berisi $productCount produk. Yakin ingin menghapus kategori ini?'
+              : 'Kategori "${category.name}" akan dihapus dari daftar kategori.',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 13,
+            color: const Color(0xFF7D6352),
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -132,36 +375,27 @@ class _AdminMenuTabState extends State<AdminMenuTab> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.figmaCoffee,
+              backgroundColor: const Color(0xFFE14949),
               foregroundColor: Colors.white,
               elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            onPressed: () {
-              final qty = int.tryParse(qtyController.text.trim()) ?? 0;
-              final cost = double.tryParse(costController.text.trim()) ?? 0.0;
-              if (qty <= 0) return;
-              menu.restockProduct(
-                productId: product.id,
-                quantity: qty,
-                buyCost: cost,
-                notes: notesController.text.trim(),
-              );
+            onPressed: () async {
               Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Stok "${product.name}" bertambah +$qty porsi.',
+              await menu.deleteCategory(category.id);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Kategori "${category.name}" dihapus.'),
+                    backgroundColor: AppColors.figmaCoffee,
                   ),
-                  backgroundColor: AppColors.figmaReadyGreen,
-                ),
-              );
+                );
+              }
             },
             child: Text(
-              'Simpan Stok',
+              'Hapus',
               style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
             ),
           ),
@@ -170,552 +404,525 @@ class _AdminMenuTabState extends State<AdminMenuTab> {
     );
   }
 
-  void _showProductForm(BuildContext context, {ProductModel? existingProduct}) {
+  void _confirmDeleteAddon(BuildContext context, AddonModel addon) {
     final menu = context.read<MenuProvider>();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        title: Text(
+          'Hapus Add-on?',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 16.5,
+            fontWeight: FontWeight.w800,
+            color: AppColors.figmaCoffee,
+          ),
+        ),
+        content: Text(
+          'Varian / add-on "${addon.name}" akan dihapus dari daftar tambahan produk.',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 13,
+            color: const Color(0xFF7D6352),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Batal',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF9C7F6C),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE14949),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              menu.deleteAddon(addon.id);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Add-on "${addon.name}" telah dihapus.'),
+                  backgroundColor: AppColors.figmaCoffee,
+                ),
+              );
+            },
+            child: Text(
+              'Hapus',
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
+  // =========================================================================
+  // CATEGORY FORM SHEET (TAMBAH / EDIT KATEGORI)
+  // =========================================================================
+
+  void _showCategoryFormSheet(
+    BuildContext context, {
+    CategoryModel? existingCategory,
+  }) {
+    final menu = context.read<MenuProvider>();
     final nameController = TextEditingController(
-      text: existingProduct?.name ?? '',
+      text: existingCategory?.name ?? '',
     );
-    final descController = TextEditingController(
-      text: existingProduct?.description ?? '',
-    );
-    final priceController = TextEditingController(
-      text: existingProduct != null ? existingProduct.price.toInt().toString() : '',
-    );
-    final hppController = TextEditingController(
-      text: existingProduct != null ? existingProduct.costPrice.toInt().toString() : '',
-    );
-    final stockController = TextEditingController(
-      text: existingProduct?.stock.toString() ?? '20',
-    );
-    final minStockController = TextEditingController(
-      text: existingProduct?.minStock.toString() ?? '5',
-    );
-    final imageController = TextEditingController(
-      text: existingProduct?.imageUrl ?? '',
-    );
+    String selectedIcon = existingCategory?.icon ?? 'coffee';
+    final productCount = existingCategory == null
+        ? 0
+        : menu.products
+            .where((p) => p.categoryId == existingCategory.id)
+            .length;
 
-    String? selectedCategoryId = existingProduct?.categoryId ??
-        (menu.categories.isNotEmpty ? menu.categories.first.id : null);
-    bool trackStock = existingProduct?.trackStock ?? true;
-    bool isActive = existingProduct?.isActive ?? true;
+    const iconChoices = [
+      {'id': 'coffee', 'label': 'Espresso'},
+      {'id': 'local_drink', 'label': 'Non-Coffee'},
+      {'id': 'coffee_maker', 'label': 'Manual Brew'},
+      {'id': 'cake', 'label': 'Pastry'},
+      {'id': 'grain', 'label': 'Beans'},
+    ];
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModalState) {
-          final price = double.tryParse(priceController.text) ?? 0.0;
-          final hpp = double.tryParse(hppController.text) ?? 0.0;
-          final profit = (price - hpp).clamp(0.0, double.infinity);
-          final margin =
-              price > 0 ? (((price - hpp) / price) * 100).toStringAsFixed(1) : '0';
-
-          return Container(
-            height: MediaQuery.of(ctx).size.height * 0.9,
-            decoration: const BoxDecoration(
-              color: Color(0xFFFAF6F1),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-            ),
-            child: Column(
-              children: [
-                const SizedBox(height: 12),
-                Container(
-                  width: 42,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.figmaSubtleBorder,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 14, 12, 12),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: AppColors.figmaCoffee,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          existingProduct != null
-                              ? Icons.edit_rounded
-                              : Icons.add_rounded,
-                          color: Colors.white,
-                          size: 20,
-                        ),
+        builder: (ctx, setModalState) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+          ),
+          padding: EdgeInsets.fromLTRB(
+            20,
+            12,
+            20,
+            MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.figmaSubtleBorder,
+                        borderRadius: BorderRadius.circular(4),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              existingProduct != null
-                                  ? 'Edit Produk'
-                                  : 'Tambah Produk Baru',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 16.5,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.figmaCoffee,
-                              ),
-                            ),
-                            Text(
-                              existingProduct != null
-                                  ? 'Perbarui detail, harga, dan stok produk'
-                                  : 'Tambahkan menu baru ke katalog COFFI',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 12,
-                                color: const Color(0xFF9C7F6C),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.close_rounded,
-                          color: AppColors.figmaCoffee,
-                        ),
-                        onPressed: () => Navigator.pop(ctx),
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(color: Color(0xFFEDE4DB), height: 1),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.fromLTRB(
-                      20,
-                      18,
-                      20,
-                      MediaQuery.of(ctx).viewInsets.bottom + 24,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Live Preview Card
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(color: const Color(0xFFF0E6DC)),
-                          ),
-                          child: Row(
-                            children: [
-                              AdminProductImage(
-                                imageUrl: imageController.text.trim(),
-                                size: 58,
-                                borderRadius: 14,
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      nameController.text.trim().isEmpty
-                                          ? 'Nama Produk Preview'
-                                          : nameController.text.trim(),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 14.5,
-                                        fontWeight: FontWeight.w800,
-                                        color: AppColors.figmaCoffee,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      CurrencyFormatter.format(price),
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppColors.figmaHazelnut,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 5,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFECFDF5),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  'Margin $margin%',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.figmaReadyGreen,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 18),
-
-                        _buildFieldLabel('Nama Produk'),
-                        const SizedBox(height: 6),
-                        TextField(
-                          controller: nameController,
-                          onChanged: (_) => setModalState(() {}),
-                          decoration: _inputDecoration(
-                            hint: 'Contoh: COFFI Aren Signature',
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-
-                        _buildFieldLabel('Kategori'),
-                        const SizedBox(height: 6),
-                        DropdownButtonFormField<String>(
-                          value: menu.categories.any(
-                            (c) => c.id == selectedCategoryId,
-                          )
-                              ? selectedCategoryId
-                              : null,
-                          decoration: _inputDecoration(hint: 'Pilih kategori'),
-                          dropdownColor: Colors.white,
-                          items: menu.categories
-                              .map(
-                                (c) => DropdownMenuItem(
-                                  value: c.id,
-                                  child: Text(
-                                    c.name,
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 14,
-                                      color: AppColors.figmaCoffee,
-                                    ),
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (val) =>
-                              setModalState(() => selectedCategoryId = val),
-                        ),
-                        const SizedBox(height: 14),
-
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildFieldLabel('Harga Jual'),
-                                  const SizedBox(height: 6),
-                                  TextField(
-                                    controller: priceController,
-                                    keyboardType: TextInputType.number,
-                                    onChanged: (_) => setModalState(() {}),
-                                    decoration: _inputDecoration(
-                                      hint: '22000',
-                                      prefixText: 'Rp ',
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildFieldLabel('HPP (Modal)'),
-                                  const SizedBox(height: 6),
-                                  TextField(
-                                    controller: hppController,
-                                    keyboardType: TextInputType.number,
-                                    onChanged: (_) => setModalState(() {}),
-                                    decoration: _inputDecoration(
-                                      hint: '10000',
-                                      prefixText: 'Rp ',
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 10),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF4EAE1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.trending_up_rounded,
-                                size: 18,
-                                color: AppColors.figmaCoffee,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Estimasi Laba/Porsi: ${CurrencyFormatter.format(profit)} ($margin%)',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.figmaCoffee,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 14),
-
-                        // Toggles Container
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFFE8DDD3)),
-                          ),
-                          child: Column(
-                            children: [
-                              SwitchListTile(
-                                contentPadding: EdgeInsets.zero,
-                                title: Text(
-                                  'Status Produk Aktif',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.figmaCoffee,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  'Tampilkan di katalog pelanggan & kasir',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 11.5,
-                                    color: const Color(0xFF9C7F6C),
-                                  ),
-                                ),
-                                value: isActive,
-                                activeColor: AppColors.figmaReadyGreen,
-                                onChanged: (val) =>
-                                    setModalState(() => isActive = val),
-                              ),
-                              const Divider(
-                                color: Color(0xFFF3ECE4),
-                                height: 1,
-                              ),
-                              SwitchListTile(
-                                contentPadding: EdgeInsets.zero,
-                                title: Text(
-                                  'Lacak Stok Otomatis',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.figmaCoffee,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  'Kurangi stok tiap transaksi berhasil',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 11.5,
-                                    color: const Color(0xFF9C7F6C),
-                                  ),
-                                ),
-                                value: trackStock,
-                                activeColor: AppColors.figmaCoffee,
-                                onChanged: (val) =>
-                                    setModalState(() => trackStock = val),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        if (trackStock) ...[
-                          const SizedBox(height: 14),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildFieldLabel('Stok Tersedia'),
-                                    const SizedBox(height: 6),
-                                    TextField(
-                                      controller: stockController,
-                                      keyboardType: TextInputType.number,
-                                      decoration: _inputDecoration(hint: '20'),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildFieldLabel('Batas Stok Kritis'),
-                                    const SizedBox(height: 6),
-                                    TextField(
-                                      controller: minStockController,
-                                      keyboardType: TextInputType.number,
-                                      decoration: _inputDecoration(hint: '5'),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-
-                        const SizedBox(height: 14),
-
-                        _buildFieldLabel('URL / Asset Foto Produk (Opsional)'),
-                        const SizedBox(height: 6),
-                        TextField(
-                          controller: imageController,
-                          onChanged: (_) => setModalState(() {}),
-                          decoration: _inputDecoration(
-                            hint:
-                                'https://... atau assets/images/products/...',
-                          ),
-                        ),
-
-                        const SizedBox(height: 14),
-
-                        _buildFieldLabel('Deskripsi Singkat'),
-                        const SizedBox(height: 6),
-                        TextField(
-                          controller: descController,
-                          maxLines: 2,
-                          decoration: _inputDecoration(
-                            hint:
-                                'Espresso khas COFFI dengan susu segar & gula aren...',
-                          ),
-                        ),
-
-                        const SizedBox(height: 22),
-
-                        SizedBox(
-                          width: double.infinity,
-                          height: 52,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.figmaCoffee,
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                            onPressed: () {
-                              if (nameController.text.trim().isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Nama produk wajib diisi.'),
-                                    backgroundColor: AppColors.berryRed,
-                                  ),
-                                );
-                                return;
-                              }
-
-                              final product = ProductModel(
-                                id: existingProduct?.id ?? const Uuid().v4(),
-                                categoryId: selectedCategoryId,
-                                name: nameController.text.trim(),
-                                description: descController.text.trim(),
-                                price: double.tryParse(priceController.text) ??
-                                    0.0,
-                                costPrice:
-                                    double.tryParse(hppController.text) ?? 0.0,
-                                stock: int.tryParse(stockController.text) ?? 0,
-                                minStock:
-                                    int.tryParse(minStockController.text) ?? 5,
-                                trackStock: trackStock,
-                                isActive: isActive,
-                                imageUrl: imageController.text.trim().isNotEmpty
-                                    ? imageController.text.trim()
-                                    : (existingProduct?.imageUrl ??
-                                        'assets/images/products/coffi_aren.png'),
-                              );
-
-                              menu.saveProduct(product);
-                              Navigator.pop(ctx);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Produk "${product.name}" berhasil disimpan!',
-                                  ),
-                                  backgroundColor: AppColors.figmaReadyGreen,
-                                ),
-                              );
-                            },
-                            child: Text(
-                              'SIMPAN PRODUK',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 14.5,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  Text(
+                    existingCategory != null
+                        ? 'Edit Kategori'
+                        : 'Tambah Kategori Baru',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.figmaCoffee,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    'Nama Kategori',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.figmaCoffee,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: nameController,
+                    autofocus: existingCategory == null,
+                    decoration: _modalInputDecoration(
+                      hint: 'Contoh: Espresso-Based, Signature, Pastry',
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    'Tipe / Ikon Kategori',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.figmaCoffee,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: iconChoices.map((item) {
+                      final isSelected = selectedIcon == item['id'];
+                      return _buildSheetPill(
+                        label: item['label']!,
+                        selected: isSelected,
+                        onTap: () =>
+                            setModalState(() => selectedIcon = item['id']!),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 20),
+                  if (existingCategory != null) ...[
+                    SizedBox(
+                      width: double.infinity,
+                      height: 44,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.figmaCoffee,
+                          side: const BorderSide(color: Color(0xFFE8DDD3)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          menu.selectCategory(existingCategory.id);
+                          _switchSection(_ProductModuleSection.produk);
+                        },
+                        icon: const Icon(Icons.visibility_outlined, size: 17),
+                        label: Text(
+                          'Lihat $productCount Produk di Kategori Ini',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.figmaCoffee,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      onPressed: () async {
+                        final name = nameController.text.trim();
+                        if (name.isEmpty) return;
+                        final cat = CategoryModel(
+                          id: existingCategory?.id ?? const Uuid().v4(),
+                          name: name,
+                          icon: selectedIcon,
+                          sortOrder: existingCategory?.sortOrder ??
+                              (menu.categories.length + 1),
+                          isActive: true,
+                        );
+                        Navigator.pop(ctx);
+                        await menu.saveCategory(cat);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Kategori "${cat.name}" berhasil disimpan!',
+                              ),
+                              backgroundColor: AppColors.figmaReadyGreen,
+                            ),
+                          );
+                        }
+                      },
+                      child: Text(
+                        existingCategory != null
+                            ? 'SIMPAN PERUBAHAN'
+                            : '+ TAMBAH KATEGORI BARU',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildFieldLabel(String text) {
-    return Text(
-      text,
-      style: GoogleFonts.plusJakartaSans(
-        fontSize: 12.5,
-        fontWeight: FontWeight.w700,
-        color: AppColors.figmaCoffee,
+  // =========================================================================
+  // ADD-ON / VARIAN FORM SHEET (TAMBAH / EDIT ADD-ON)
+  // =========================================================================
+
+  void _showAddonFormSheet(
+    BuildContext context, {
+    AddonModel? existingAddon,
+  }) {
+    final menu = context.read<MenuProvider>();
+    final nameController = TextEditingController(
+      text: existingAddon?.name ?? '',
+    );
+    final priceController = TextEditingController(
+      text: existingAddon != null && existingAddon.price > 0
+          ? CurrencyFormatter.formatNumber(existingAddon.price)
+          : '',
+    );
+    String selectedGroup = existingAddon?.group ?? _addonGroupOptions.first;
+    String selectedImage =
+        existingAddon?.imageUrl ?? _addonPresetPhotos.first;
+    bool isActive = existingAddon?.isActive ?? true;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+          ),
+          padding: EdgeInsets.fromLTRB(
+            20,
+            12,
+            20,
+            MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.figmaSubtleBorder,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    existingAddon != null
+                        ? 'Edit Varian / Add-on'
+                        : 'Tambah Add-on Baru',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.figmaCoffee,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    'Nama Varian / Add-on',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.figmaCoffee,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: nameController,
+                    autofocus: existingAddon == null,
+                    decoration: _modalInputDecoration(
+                      hint: 'Contoh: Extra Shot, Oat Milk, Syrup Caramel',
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    'Kategori Tambahan',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.figmaCoffee,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _addonGroupOptions
+                        .map(
+                          (g) => _buildSheetPill(
+                            label: g,
+                            selected: selectedGroup == g,
+                            onTap: () => setModalState(() => selectedGroup = g),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    'Tambahan Harga (Rp)',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.figmaCoffee,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: priceController,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [ThousandsSeparatorInputFormatter()],
+                    decoration: _modalInputDecoration(
+                      hint: '0 untuk Gratis (misal: 5.000)',
+                      prefixText: '+Rp ',
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    'Thumbnail',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.figmaCoffee,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 58,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _addonPresetPhotos.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      itemBuilder: (_, i) {
+                        final path = _addonPresetPhotos[i];
+                        final isSel = selectedImage == path;
+                        return GestureDetector(
+                          onTap: () =>
+                              setModalState(() => selectedImage = path),
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: isSel
+                                    ? AppColors.figmaCoffee
+                                    : const Color(0xFFE8DDD3),
+                                width: isSel ? 2 : 1,
+                              ),
+                            ),
+                            child: AdminProductImage(
+                              imageUrl: path,
+                              size: 50,
+                              borderRadius: 11,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      'Status Aktif',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.figmaCoffee,
+                      ),
+                    ),
+                    value: isActive,
+                    activeColor: AppColors.figmaReadyGreen,
+                    onChanged: (val) => setModalState(() => isActive = val),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.figmaCoffee,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      onPressed: () {
+                        final name = nameController.text.trim();
+                        if (name.isEmpty) return;
+                        final addon = AddonModel(
+                          id: existingAddon?.id ?? const Uuid().v4(),
+                          name: name,
+                          group: selectedGroup,
+                          price: CurrencyFormatter.parse(priceController.text),
+                          imageUrl: selectedImage,
+                          isActive: isActive,
+                        );
+                        menu.saveAddon(addon);
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Add-on "${addon.name}" berhasil disimpan!',
+                            ),
+                            backgroundColor: AppColors.figmaReadyGreen,
+                          ),
+                        );
+                      },
+                      child: Text(
+                        existingAddon != null
+                            ? 'SIMPAN PERUBAHAN'
+                            : '+ TAMBAH ADD-ON',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
 
-  InputDecoration _inputDecoration({
+  InputDecoration _modalInputDecoration({
     required String hint,
     String? prefixText,
   }) {
     return InputDecoration(
       hintText: hint,
       prefixText: prefixText,
-      hintStyle: GoogleFonts.plusJakartaSans(
+      prefixStyle: GoogleFonts.plusJakartaSans(
         fontSize: 13.5,
+        fontWeight: FontWeight.w700,
+        color: const Color(0xFF9C7F6C),
+      ),
+      hintStyle: GoogleFonts.plusJakartaSans(
+        fontSize: 13,
         color: const Color(0xFFB8A394),
       ),
       filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      fillColor: const Color(0xFFFAF6F1),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFFE8DDD3), width: 1),
+        borderSide: const BorderSide(color: Color(0xFFE8DDD3)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
@@ -724,739 +931,656 @@ class _AdminMenuTabState extends State<AdminMenuTab> {
     );
   }
 
+  // =========================================================================
+  // MAIN BUILD
+  // =========================================================================
+
   @override
   Widget build(BuildContext context) {
     final menu = context.watch<MenuProvider>();
 
-    if (_searchController.text != menu.searchQuery) {
+    if (_activeSection == _ProductModuleSection.produk &&
+        _searchController.text != menu.searchQuery) {
       _searchController.value = TextEditingValue(
         text: menu.searchQuery,
         selection: TextSelection.collapsed(offset: menu.searchQuery.length),
       );
     }
 
-    final totalCount = menu.products.length;
-    final activeCount = menu.products.where((p) => p.isActive).length;
-    final lowStockCount = menu.lowStockProducts.length;
+    // Dynamic header texts matching Images 1, 3, and 4
+    final String headerTitle;
+    final String headerSubtitle;
+    final String searchHint;
+    final String fabLabel;
 
+    switch (_activeSection) {
+      case _ProductModuleSection.produk:
+        headerTitle = 'Kelola Produk';
+        headerSubtitle = 'Total: ${menu.products.length} Menu';
+        searchHint = 'Cari produk...';
+        fabLabel = 'Tambah Produk';
+        break;
+      case _ProductModuleSection.kategori:
+        headerTitle = 'Kelola Kategori';
+        headerSubtitle = 'Total: ${menu.categories.length} Kategori';
+        searchHint = 'Cari kategori...';
+        fabLabel = 'Tambah Kategori';
+        break;
+      case _ProductModuleSection.varian:
+        headerTitle = 'Kelola Varian & Add-on';
+        headerSubtitle = 'Manajemen Tambahan Produk';
+        searchHint = 'Cari varian atau add-on...';
+        fabLabel = 'Tambah Add-on';
+        break;
+    }
+
+    // Filter & sort products for Produk sub-view
     final List<ProductModel> displayedProducts = menu.filteredProducts.where((p) {
-      switch (_statusFilter) {
-        case _ProductStatusFilter.active:
-          return p.isActive;
-        case _ProductStatusFilter.lowStock:
-          return p.isLowStock || p.isOutOfStock;
-        case _ProductStatusFilter.all:
+      switch (_stockFilter) {
+        case _StockFilter.active:
+          return p.isActive && !p.isOutOfStock;
+        case _StockFilter.lowStock:
+          return p.isLowStock;
+        case _StockFilter.outOfStock:
+          return !p.isActive || p.isOutOfStock;
+        case _StockFilter.all:
           return true;
       }
     }).toList();
 
+    displayedProducts.sort((a, b) {
+      switch (_sortMode) {
+        case _ProductSort.priceAsc:
+          return a.price.compareTo(b.price);
+        case _ProductSort.priceDesc:
+          return b.price.compareTo(a.price);
+        case _ProductSort.stockAsc:
+          return a.stock.compareTo(b.stock);
+        case _ProductSort.nameAsc:
+          return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      }
+    });
+
+    final selectedCategoryLabel = menu.selectedCategoryId == null
+        ? 'Semua'
+        : _resolveCategoryName(menu, menu.selectedCategoryId);
+    final hasExtraFilter =
+        _stockFilter != _StockFilter.all || _sortMode != _ProductSort.nameAsc;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF6F1),
+      backgroundColor: const Color(0xFFFAF6F0),
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'admin_produk_fab',
+        backgroundColor: const Color(0xFF4A2E21),
+        foregroundColor: Colors.white,
+        elevation: 6,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        onPressed: () {
+          switch (_activeSection) {
+            case _ProductModuleSection.produk:
+              _openProductForm(context);
+              break;
+            case _ProductModuleSection.kategori:
+              _showCategoryFormSheet(context);
+              break;
+            case _ProductModuleSection.varian:
+              _showAddonFormSheet(context);
+              break;
+          }
+        },
+        icon: const Icon(Icons.add_rounded, size: 22),
+        label: Text(
+          fabLabel,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 13.5,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.2,
+          ),
+        ),
+      ),
       body: Column(
         children: [
-          AdminHeader(onTabNavigate: widget.onTabNavigate),
-          Expanded(
-            child: RefreshIndicator(
-              color: AppColors.figmaCoffee,
-              onRefresh: () => menu.refreshProducts(),
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Page Heading + Add Product Pill CTA
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Kelola Produk',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: -0.3,
-                                        color: AppColors.figmaCoffee,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      'Atur katalog menu, harga, dan ketersediaan',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500,
-                                        color: const Color(0xFFA0806D),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              ElevatedButton.icon(
-                                onPressed: () => _showProductForm(context),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.figmaCoffee,
-                                  foregroundColor: Colors.white,
-                                  elevation: 0,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 11,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                ),
-                                icon: const Icon(Icons.add_rounded, size: 18),
-                                label: Text(
-                                  'Tambah',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // 3 Compact Summary Filter Cards
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildSummaryFilterCard(
-                                  label: 'SEMUA',
-                                  value: '$totalCount',
-                                  isSelected:
-                                      _statusFilter == _ProductStatusFilter.all,
-                                  accentColor: AppColors.figmaCoffee,
-                                  onTap: () => setState(
-                                    () =>
-                                        _statusFilter = _ProductStatusFilter.all,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: _buildSummaryFilterCard(
-                                  label: 'AKTIF',
-                                  value: '$activeCount',
-                                  isSelected: _statusFilter ==
-                                      _ProductStatusFilter.active,
-                                  accentColor: AppColors.figmaReadyGreen,
-                                  onTap: () => setState(
-                                    () => _statusFilter =
-                                        _ProductStatusFilter.active,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: _buildSummaryFilterCard(
-                                  label: 'STOK KRITIS',
-                                  value: '$lowStockCount',
-                                  isSelected: _statusFilter ==
-                                      _ProductStatusFilter.lowStock,
-                                  accentColor: lowStockCount > 0
-                                      ? const Color(0xFFC5A200)
-                                      : AppColors.figmaReadyGreen,
-                                  isWarningHighlight: lowStockCount > 0,
-                                  onTap: () => setState(
-                                    () => _statusFilter =
-                                        _ProductStatusFilter.lowStock,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 14),
-
-                          // Search Bar
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: const Color(0xFFEFE5DB),
-                                width: 1,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.figmaCoffee.withOpacity(0.04),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: TextField(
-                              controller: _searchController,
-                              onChanged: (val) {
-                                menu.setSearchQuery(val);
-                                setState(() {});
-                              },
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 13.5,
-                                color: AppColors.figmaCoffee,
-                              ),
-                              decoration: InputDecoration(
-                                prefixIcon: const Icon(
-                                  Icons.search_rounded,
-                                  color: Color(0xFFA88D7B),
-                                  size: 20,
-                                ),
-                                suffixIcon: _searchController.text.isNotEmpty
-                                    ? IconButton(
-                                        icon: const Icon(
-                                          Icons.close_rounded,
-                                          size: 18,
-                                          color: Color(0xFFA88D7B),
-                                        ),
-                                        onPressed: () {
-                                          _searchController.clear();
-                                          menu.setSearchQuery('');
-                                          setState(() {});
-                                        },
-                                      )
-                                    : null,
-                                hintText: 'Cari nama menu atau deskripsi...',
-                                hintStyle: GoogleFonts.plusJakartaSans(
-                                  fontSize: 13.5,
-                                  color: const Color(0xFFB39D8E),
-                                ),
-                                border: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 14,
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 14),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  // Category Filter Pills
-                  SliverToBoxAdapter(
-                    child: SizedBox(
-                      height: 38,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        children: [
-                          _buildCategoryPill(
-                            label: 'Semua',
-                            count: totalCount,
-                            isSelected: menu.selectedCategoryId == null,
-                            onTap: () => menu.selectCategory(null),
-                          ),
-                          ...menu.categories.map((cat) {
-                            final count = menu.products
-                                .where((p) => p.categoryId == cat.id)
-                                .length;
-                            return _buildCategoryPill(
-                              label: cat.name,
-                              count: count,
-                              isSelected: menu.selectedCategoryId == cat.id,
-                              onTap: () => menu.selectCategory(cat.id),
-                            );
-                          }),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SliverToBoxAdapter(child: SizedBox(height: 14)),
-
-                  // Product List or Empty State
-                  if (displayedProducts.isEmpty)
-                    SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(32),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 64,
-                                height: 64,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: const Color(0xFFEFE5DB),
-                                  ),
-                                ),
-                                child: const Icon(
-                                  Icons.inventory_2_outlined,
-                                  color: AppColors.figmaHazelnut,
-                                  size: 30,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                'Produk tidak ditemukan',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.figmaCoffee,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Coba ubah filter kategori atau kata kunci pencarian.',
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 12.5,
-                                  color: const Color(0xFF9C7F6C),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    )
-                  else
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final product = displayedProducts[index];
-                            final categoryName = _resolveCategoryName(
-                              menu,
-                              product.categoryId,
-                            );
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: _buildProductCard(
-                                context: context,
-                                menu: menu,
-                                product: product,
-                                categoryName: categoryName,
-                              ),
-                            );
-                          },
-                          childCount: displayedProducts.length,
-                        ),
-                      ),
-                    ),
-                ],
+          // Top White Panel matching Minimalist Cafe POS Design
+          Container(
+            decoration: const BoxDecoration(
+              color: Color(0xFFFAF6F0),
+              border: Border(
+                bottom: BorderSide(color: Color(0xFFEFE6DC), width: 1),
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSummaryFilterCard({
-    required String label,
-    required String value,
-    required bool isSelected,
-    required Color accentColor,
-    bool isWarningHighlight = false,
-    required VoidCallback onTap,
-  }) {
-    final bgColor = isSelected
-        ? (isWarningHighlight ? const Color(0xFFFFF8F0) : Colors.white)
-        : (isWarningHighlight ? const Color(0xFFFFFAF6) : Colors.white);
-
-    final borderColor = isSelected
-        ? accentColor
-        : (isWarningHighlight
-            ? const Color(0xFFEAE3B0)
-            : const Color(0xFFF0E6DC));
-
-    return Material(
-      color: bgColor,
-      borderRadius: BorderRadius.circular(18),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: borderColor,
-              width: isSelected ? 1.5 : 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.figmaCoffee.withOpacity(0.04),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
-                  color: isWarningHighlight
-                      ? const Color(0xFFC5A200)
-                      : const Color(0xFFA0806D),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                value,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 19,
-                  fontWeight: FontWeight.w800,
-                  color: accentColor,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCategoryPill({
-    required String label,
-    required int count,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: Material(
-        color: isSelected ? AppColors.figmaCoffee : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: isSelected
-                    ? AppColors.figmaCoffee
-                    : const Color(0xFFEFE5DB),
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  label,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12.5,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                    color: isSelected ? Colors.white : const Color(0xFF7D6352),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 1,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? Colors.white.withOpacity(0.18)
-                        : const Color(0xFFF7EFE7),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    '$count',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w700,
-                      color: isSelected
-                          ? Colors.white
-                          : const Color(0xFF9C7F6C),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProductCard({
-    required BuildContext context,
-    required MenuProvider menu,
-    required ProductModel product,
-    required String categoryName,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFF3ECE4), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.figmaCoffee.withOpacity(0.045),
-            blurRadius: 16,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Product Image
-              Opacity(
-                opacity: product.isActive ? 1.0 : 0.45,
-                child: AdminProductImage(
-                  imageUrl: product.imageUrl,
-                  size: 66,
-                  borderRadius: 16,
-                ),
-              ),
-              const SizedBox(width: 12),
-
-              // Product Info
-              Expanded(
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF7EFE7),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        categoryName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF9C7F6C),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      product.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: product.isActive
-                            ? AppColors.figmaCoffee
-                            : AppColors.textMuted,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Wrap(
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 6,
-                      runSpacing: 4,
+                    // Row 1: Coffee Icon Badge + Title/Subtitle + Hamburger Button
+                    Row(
                       children: [
-                        Text(
-                          CurrencyFormatter.format(product.price),
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.figmaCoffee,
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF4A2E21),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(
+                            Icons.coffee_rounded,
+                            color: Colors.white,
+                            size: 24,
                           ),
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 7,
-                            vertical: 2,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                headerTitle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 19,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.2,
+                                  color: const Color(0xFF4A2E21),
+                                ),
+                              ),
+                              const SizedBox(height: 1),
+                              Text(
+                                headerSubtitle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF8C7262),
+                                ),
+                              ),
+                            ],
                           ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFECFDF5),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            'Margin ${product.marginPercentage.toStringAsFixed(0)}%',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.figmaReadyGreen,
+                        ),
+                        const SizedBox(width: 10),
+                        Material(
+                          color: const Color(0xFFFDFBF8),
+                          borderRadius: BorderRadius.circular(12),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: () => AdminHeader.showQuickMenu(context),
+                            child: Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: const Color(0xFFE5D8CC),
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.menu_rounded,
+                                color: Color(0xFF4A2E21),
+                                size: 20,
+                              ),
                             ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'HPP ${CurrencyFormatter.format(product.costPrice)}',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11.5,
-                        color: const Color(0xFFA88D7B),
+
+                    const SizedBox(height: 14),
+
+                    // Row 2: Segmented Pill Tab Bar (Produk | Kategori | Varian & Add-on)
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEDE4DA),
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: Row(
+                        children: [
+                          _buildSectionTab(
+                            label: 'Produk',
+                            section: _ProductModuleSection.produk,
+                          ),
+                          _buildSectionTab(
+                            label: 'Kategori',
+                            section: _ProductModuleSection.kategori,
+                          ),
+                          _buildSectionTab(
+                            label: 'Varian & Add-on',
+                            section: _ProductModuleSection.varian,
+                          ),
+                        ],
                       ),
                     ),
+
+                    const SizedBox(height: 12),
+
+                    // Row 3: Rounded Search Bar
+                    Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFDFBF8),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: const Color(0xFFE5D8CC),
+                          width: 1,
+                        ),
+                      ),
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (val) {
+                          if (_activeSection == _ProductModuleSection.produk) {
+                            menu.setSearchQuery(val);
+                          } else {
+                            setState(() => _subViewSearchQuery = val);
+                          }
+                          setState(() {});
+                        },
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13.5,
+                          color: const Color(0xFF4A2E21),
+                        ),
+                        decoration: InputDecoration(
+                          prefixIcon: const Icon(
+                            Icons.search_rounded,
+                            color: Color(0xFF8C7262),
+                            size: 20,
+                          ),
+                          suffixIcon: _searchController.text.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(
+                                    Icons.close_rounded,
+                                    size: 18,
+                                    color: Color(0xFF8C7262),
+                                  ),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    if (_activeSection ==
+                                        _ProductModuleSection.produk) {
+                                      menu.setSearchQuery('');
+                                    } else {
+                                      _subViewSearchQuery = '';
+                                    }
+                                    setState(() {});
+                                  },
+                                )
+                              : null,
+                          hintText: searchHint,
+                          hintStyle: GoogleFonts.plusJakartaSans(
+                            fontSize: 13.5,
+                            color: const Color(0xFF9C8678),
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 13,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Row 4: Category Dropdown Pill + Filter Icon Button
+                    if (_activeSection == _ProductModuleSection.produk) ...[
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: PopupMenuButton<String>(
+                              color: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              onSelected: (val) {
+                                menu.selectCategory(
+                                  val == '__ALL__' ? null : val,
+                                );
+                              },
+                              itemBuilder: (_) => [
+                                PopupMenuItem<String>(
+                                  value: '__ALL__',
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          'Semua Kategori (${menu.products.length})',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 13,
+                                            fontWeight:
+                                                menu.selectedCategoryId == null
+                                                    ? FontWeight.w800
+                                                    : FontWeight.w500,
+                                            color: const Color(0xFF4A2E21),
+                                          ),
+                                        ),
+                                      ),
+                                      if (menu.selectedCategoryId == null)
+                                        const Icon(
+                                          Icons.check_rounded,
+                                          size: 16,
+                                          color: Color(0xFF4A2E21),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                ...menu.categories.map((cat) {
+                                  final count = menu.products
+                                      .where((p) => p.categoryId == cat.id)
+                                      .length;
+                                  final isSel =
+                                      menu.selectedCategoryId == cat.id;
+                                  return PopupMenuItem<String>(
+                                    value: cat.id,
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            '${cat.name} ($count)',
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 13,
+                                              fontWeight: isSel
+                                                  ? FontWeight.w800
+                                                  : FontWeight.w500,
+                                              color: const Color(0xFF4A2E21),
+                                            ),
+                                          ),
+                                        ),
+                                        if (isSel)
+                                          const Icon(
+                                            Icons.check_rounded,
+                                            size: 16,
+                                            color: Color(0xFF4A2E21),
+                                          ),
+                                      ],
+                                    ),
+                                  );
+                                }),
+                              ],
+                              child: Container(
+                                height: 42,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFDFBF8),
+                                  borderRadius: BorderRadius.circular(22),
+                                  border: Border.all(
+                                    color: const Color(0xFFE5D8CC),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        'Kategori: $selectedCategoryLabel',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                          color: const Color(0xFF4A2E21),
+                                        ),
+                                      ),
+                                    ),
+                                    const Icon(
+                                      Icons.keyboard_arrow_down_rounded,
+                                      size: 20,
+                                      color: Color(0xFF4A2E21),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Material(
+                                color: const Color(0xFFFDFBF8),
+                                borderRadius: BorderRadius.circular(14),
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(14),
+                                  onTap: () => _showFilterSortSheet(context),
+                                  child: Container(
+                                    width: 42,
+                                    height: 42,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(
+                                        color: hasExtraFilter
+                                            ? const Color(0xFF4A2E21)
+                                            : const Color(0xFFE5D8CC),
+                                      ),
+                                    ),
+                                    child: const Icon(
+                                      Icons.tune_rounded,
+                                      size: 20,
+                                      color: Color(0xFF4A2E21),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              if (hasExtraFilter)
+                                Positioned(
+                                  top: -2,
+                                  right: -2,
+                                  child: Container(
+                                    width: 10,
+                                    height: 10,
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFF4A2E21),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
-
-              const SizedBox(width: 6),
-
-              // Active Toggle
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  SizedBox(
-                    height: 30,
-                    child: Switch(
-                      value: product.isActive,
-                      activeColor: Colors.white,
-                      activeTrackColor: AppColors.figmaLimitedGreen,
-                      inactiveThumbColor: Colors.white,
-                      inactiveTrackColor: const Color(0xFFDCD2C8),
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      onChanged: (val) => menu.toggleSoldOut(product.id, !val),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    product.isActive ? 'Aktif' : 'Nonaktif',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: product.isActive
-                          ? AppColors.figmaReadyGreen
-                          : AppColors.textMuted,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
 
-          const SizedBox(height: 12),
-          const Divider(color: Color(0xFFF3ECE4), height: 1),
-          const SizedBox(height: 10),
-
-          // Footer: Stock Pill + Quick Actions
-          Row(
-            children: [
-              Expanded(child: _buildStockPill(product)),
-              const SizedBox(width: 8),
-              if (product.trackStock) ...[
-                _buildActionChip(
-                  icon: Icons.add_rounded,
-                  label: 'Stok',
-                  bgColor: const Color(0xFFFCF8F4),
-                  borderColor: const Color(0xFFEFE5DB),
-                  fgColor: AppColors.figmaCoffee,
-                  onTap: () => _showQuickRestockDialog(context, product),
-                ),
-                const SizedBox(width: 8),
-              ],
-              _buildActionChip(
-                icon: Icons.edit_outlined,
-                label: 'Edit',
-                bgColor: const Color(0xFFF4EAE1),
-                borderColor: const Color(0xFFE9DACA),
-                fgColor: AppColors.figmaCoffee,
-                onTap: () =>
-                    _showProductForm(context, existingProduct: product),
+          // Active Sub-View Content
+          Expanded(
+            child: RefreshIndicator(
+              color: AppColors.figmaCoffee,
+              onRefresh: () => menu.refreshProducts(),
+              child: _buildActiveSectionBody(
+                context: context,
+                menu: menu,
+                displayedProducts: displayedProducts,
               ),
-            ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStockPill(ProductModel product) {
-    if (!product.trackStock) {
-      return _stockChipContainer(
-        bg: const Color(0xFFFCF8F4),
-        border: const Color(0xFFEFE6DC),
-        icon: Icons.all_inclusive_rounded,
-        color: const Color(0xFF9C7F6C),
-        text: 'Bebas Stok',
-      );
-    }
-
-    if (product.isOutOfStock) {
-      return _stockChipContainer(
-        bg: const Color(0xFFFEF2F2),
-        border: const Color(0xFFFECACA),
-        icon: Icons.error_outline_rounded,
-        color: AppColors.berryRed,
-        text: 'Stok Habis',
-      );
-    }
-
-    if (product.isLowStock) {
-      return _stockChipContainer(
-        bg: const Color(0xFFFFF8F5),
-        border: const Color(0xFFEAE3B0),
-        icon: Icons.warning_rounded,
-        color: const Color(0xFFC5A200),
-        text: 'Sisa ${product.stock} • Kritis',
-      );
-    }
-
-    return _stockChipContainer(
-      bg: const Color(0xFFFCF8F4),
-      border: const Color(0xFFEFE6DC),
-      icon: Icons.inventory_2_outlined,
-      color: const Color(0xFF7D6352),
-      text: 'Stok: ${product.stock} porsi',
+  Widget _buildSectionTab({
+    required String label,
+    required _ProductModuleSection section,
+  }) {
+    final isSelected = _activeSection == section;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _switchSection(section),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 6),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFF4A2E21) : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFF4A2E21).withOpacity(0.16),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+              color: isSelected ? Colors.white : const Color(0xFF5D4638),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _stockChipContainer({
-    required Color bg,
-    required Color border,
-    required IconData icon,
-    required Color color,
-    required String text,
+  Widget _buildActiveSectionBody({
+    required BuildContext context,
+    required MenuProvider menu,
+    required List<ProductModel> displayedProducts,
   }) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: border),
+    switch (_activeSection) {
+      case _ProductModuleSection.kategori:
+        return AdminCategoryView(
+          searchQuery: _subViewSearchQuery,
+          onEditCategory: (cat) => _showCategoryFormSheet(
+            context,
+            existingCategory: cat,
+          ),
+          onDeleteCategory: (cat) => _confirmDeleteCategory(context, cat),
+        );
+
+      case _ProductModuleSection.varian:
+        return AdminAddonView(
+          searchQuery: _subViewSearchQuery,
+          onEditAddon: (addon) => _showAddonFormSheet(
+            context,
+            existingAddon: addon,
+          ),
+          onDeleteAddon: (addon) => _confirmDeleteAddon(context, addon),
+        );
+
+      case _ProductModuleSection.produk:
+        if (displayedProducts.isEmpty) {
+          return ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(24, 56, 24, 96),
+            children: [
+              Column(
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFEFE5DB)),
+                    ),
+                    child: const Icon(
+                      Icons.inventory_2_outlined,
+                      color: AppColors.figmaHazelnut,
+                      size: 30,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Produk tidak ditemukan',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.figmaCoffee,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Ubah filter kategori atau tambah produk baru melalui tombol di kanan bawah.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12.5,
+                      color: const Color(0xFF9C7F6C),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        }
+
+        return ListView.separated(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 136),
+          itemCount: displayedProducts.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final product = displayedProducts[index];
+            final categoryName = _resolveCategoryName(menu, product.categoryId);
+            return _buildProductCard(
+              context: context,
+              menu: menu,
+              product: product,
+              categoryName: categoryName,
+            );
+          },
+        );
+    }
+  }
+
+  void _showToggleUndoToast(
+    BuildContext context, {
+    required MenuProvider menu,
+    required ProductModel product,
+    required bool turnedOn,
+  }) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        elevation: 4,
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+        backgroundColor: const Color(0xFFF3F4F6),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: const BorderSide(color: Color(0xFFE5E7EB), width: 1),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
+        duration: const Duration(seconds: 4),
+        content: Row(
           children: [
-            Icon(icon, size: 14, color: color),
-            const SizedBox(width: 5),
-            Flexible(
+            Expanded(
               child: Text(
-                text,
+                turnedOn
+                    ? '${product.name} diaktifkan'
+                    : '${product.name} dinonaktifkan',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
-                  color: color,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF1F2937),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () {
+                messenger.hideCurrentSnackBar();
+                menu.toggleSoldOut(product.id, turnedOn);
+              },
+              child: Text(
+                '(Urungkan)',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF4A2E21),
                 ),
               ),
             ),
@@ -1466,40 +1590,267 @@ class _AdminMenuTabState extends State<AdminMenuTab> {
     );
   }
 
-  Widget _buildActionChip({
-    required IconData icon,
-    required String label,
-    required Color bgColor,
-    required Color borderColor,
-    required Color fgColor,
-    required VoidCallback onTap,
+  IconData _resolveProductLineIcon(ProductModel product, String categoryName) {
+    final text = '${product.name.toLowerCase()} ${categoryName.toLowerCase()}';
+    if (text.contains('croissant') ||
+        text.contains('pastry') ||
+        text.contains('roti') ||
+        text.contains('cake') ||
+        text.contains('bread')) {
+      return Icons.bakery_dining_outlined;
+    }
+    if (text.contains('nasi') ||
+        text.contains('fries') ||
+        text.contains('food') ||
+        text.contains('snack') ||
+        text.contains('meal')) {
+      return Icons.restaurant_outlined;
+    }
+    if (text.contains('choco') ||
+        text.contains('matcha') ||
+        text.contains('thai') ||
+        text.contains('tea') ||
+        text.contains('non-coffee')) {
+      return Icons.local_drink_outlined;
+    }
+    if (text.contains('beans') || text.contains('biji')) {
+      return Icons.grain_rounded;
+    }
+    if (text.contains('latte') ||
+        text.contains('cappuccino') ||
+        text.contains('hot') ||
+        text.contains('manual')) {
+      return Icons.local_cafe_outlined;
+    }
+    return Icons.coffee_outlined;
+  }
+
+  Widget _buildProductCard({
+    required BuildContext context,
+    required MenuProvider menu,
+    required ProductModel product,
+    required String categoryName,
   }) {
-    return Material(
-      color: bgColor,
-      borderRadius: BorderRadius.circular(10),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(10),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: borderColor),
+    final bool isAvailable = product.isActive && !product.isOutOfStock;
+    final Color badgeBg;
+    final Color badgeFg;
+    final String badgeText;
+
+    if (product.isOutOfStock) {
+      // Actual empty stock
+      badgeBg = const Color(0xFFFEE2E2);
+      badgeFg = const Color(0xFFDC2626);
+      badgeText = 'Habis';
+    } else if (!product.isActive) {
+      // Manually disabled via toggle while stock still exists
+      badgeBg = const Color(0xFFE5E7EB);
+      badgeFg = const Color(0xFF4B5563);
+      badgeText = 'Nonaktif';
+    } else if (product.isLowStock) {
+      badgeBg = const Color(0xFFFEF3C7);
+      badgeFg = const Color(0xFFB45309);
+      badgeText = 'Sisa ${product.stock}';
+    } else {
+      badgeBg = const Color(0xFFDCFCE7);
+      badgeFg = const Color(0xFF16A34A);
+      badgeText = 'Tersedia';
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFEFE6DC), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF4A2E21).withOpacity(0.05),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 15, color: fgColor),
-              const SizedBox(width: 4),
-              Text(
-                label,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: fgColor,
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () => _openProductForm(context, product: product),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                // Warm beige square thumbnail (#F3ECE4) with minimalist line-art icon
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3ECE4),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(
+                    _resolveProductLineIcon(product, categoryName),
+                    color: const Color(0xFF4A2E21)
+                        .withOpacity(isAvailable ? 0.92 : 0.55),
+                    size: 30,
+                  ),
                 ),
-              ),
-            ],
+
+                const SizedBox(width: 14),
+
+                // Product Details Column
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        categoryName.toUpperCase(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.6,
+                          color: const Color(0xFF8C7262),
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        product.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 15.5,
+                          fontWeight: FontWeight.w800,
+                          color: isAvailable
+                              ? const Color(0xFF23160D)
+                              : const Color(0xFF6B584C),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        CurrencyFormatter.format(product.price),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: isAvailable
+                              ? const Color(0xFF23160D)
+                              : const Color(0xFF8C7262),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 10),
+
+                // Right Column: Status Pill Badge + Espresso Toggle Switch
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 11,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: badgeBg,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Text(
+                        badgeText,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: badgeFg,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    _EspressoToggleSwitch(
+                      value: isAvailable,
+                      onChanged: (nextVal) {
+                        if (nextVal && product.isOutOfStock) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Stok "${product.name}" sedang 0. Perbarui stok di Edit Produk.',
+                              ),
+                              backgroundColor: const Color(0xFF4A2E21),
+                              action: SnackBarAction(
+                                label: 'Edit Stok',
+                                textColor: const Color(0xFFFEF3C7),
+                                onPressed: () =>
+                                    _openProductForm(context, product: product),
+                              ),
+                            ),
+                          );
+                          return;
+                        }
+                        menu.toggleSoldOut(product.id, !nextVal);
+                        _showToggleUndoToast(
+                          context,
+                          menu: menu,
+                          product: product,
+                          turnedOn: nextVal,
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EspressoToggleSwitch extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _EspressoToggleSwitch({
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => onChanged(!value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        width: 48,
+        height: 27,
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: value ? const Color(0xFF4A2E21) : const Color(0xFFD1D5DB),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: AnimatedAlign(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            width: 21,
+            height: 21,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.12),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+            ),
           ),
         ),
       ),

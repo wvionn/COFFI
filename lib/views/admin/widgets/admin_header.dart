@@ -17,7 +17,7 @@ class AdminHeader extends StatelessWidget {
     this.onTabNavigate,
   });
 
-  void _showQuickMenu(BuildContext context) {
+  static void showQuickMenu(BuildContext context) {
     final auth = context.read<AuthProvider>();
     final menu = context.read<MenuProvider>();
     final orders = context.read<OrderProvider>();
@@ -157,7 +157,7 @@ class AdminHeader extends StatelessWidget {
     );
   }
 
-  Widget _buildMenuTile({
+  static Widget _buildMenuTile({
     required IconData icon,
     required Color iconBg,
     required Color iconColor,
@@ -330,7 +330,7 @@ class AdminHeader extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(12),
-                  onTap: () => _showQuickMenu(context),
+                  onTap: () => AdminHeader.showQuickMenu(context),
                   child: Container(
                     width: 40,
                     height: 40,
