@@ -18,7 +18,7 @@ class OrderModel {
   final double taxAmount; // PB1 10%
   final double totalAmount;
   final double totalHpp;
-  final String? notes; // test
+  final String? notes;
   final DateTime createdAt;
   final DateTime? updatedAt;
   final List<OrderItemModel> items;
