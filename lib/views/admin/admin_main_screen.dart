@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'tabs/admin_dashboard_tab.dart';
+import 'tabs/admin_history_tab.dart';
 import 'tabs/admin_menu_tab.dart';
 import 'tabs/admin_reports_tab.dart';
-import 'tabs/admin_settings_tab.dart';
 import 'tabs/admin_stock_tab.dart';
 
 class AdminMainScreen extends StatefulWidget {
@@ -20,7 +20,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
   @override
   void initState() {
     super.initState();
-    _currentIndex = widget.initialIndex;
+    _currentIndex = widget.initialIndex.clamp(0, 4);
   }
 
   void _onTabSelected(int index) {
@@ -36,8 +36,8 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
       AdminDashboardTab(onTabNavigate: _onTabSelected),
       AdminMenuTab(onTabNavigate: _onTabSelected),
       const AdminStockTab(),
+      const AdminHistoryTab(),
       const AdminReportsTab(),
-      const AdminSettingsTab(),
     ];
 
     return Scaffold(
@@ -68,7 +68,7 @@ class _AdminBottomNavBar extends StatelessWidget {
     _NavItemData(icon: Icons.inventory_2_rounded, label: 'Produk'),
     _NavItemData(icon: Icons.fact_check_rounded, label: 'Stok'),
     _NavItemData(icon: Icons.receipt_long_rounded, label: 'Riwayat'),
-    _NavItemData(icon: Icons.settings_rounded, label: 'Sistem'),
+    _NavItemData(icon: Icons.show_chart_rounded, label: 'Laporan'),
   ];
 
   @override

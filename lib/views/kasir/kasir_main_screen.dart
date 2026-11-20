@@ -9,6 +9,7 @@ import '../../providers/cart_provider.dart';
 import '../../providers/menu_provider.dart';
 import '../../providers/order_provider.dart';
 import '../admin/admin_main_screen.dart';
+import '../admin/tabs/admin_settings_tab.dart';
 import '../auth/login_screen.dart';
 import 'cart_checkout_screen.dart';
 import 'kasir_orders_tracking_screen.dart';
@@ -425,7 +426,7 @@ class _KasirMainScreenState extends State<KasirMainScreen> {
                           if (auth.currentProfile?.isAdmin == true) {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => const AdminMainScreen(initialIndex: 3)),
+                              MaterialPageRoute(builder: (_) => const AdminMainScreen(initialIndex: 4)),
                             );
                           } else {
                             _showKasirShiftReportModal(context);
@@ -441,7 +442,7 @@ class _KasirMainScreenState extends State<KasirMainScreen> {
                           if (auth.currentProfile?.isAdmin == true) {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => const AdminMainScreen(initialIndex: 4)),
+                              MaterialPageRoute(builder: (_) => const AdminSettingsTab()),
                             );
                           } else {
                             _showUserLogoutSheet(context, auth);

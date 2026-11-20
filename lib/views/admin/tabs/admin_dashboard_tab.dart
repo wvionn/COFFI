@@ -44,6 +44,10 @@ class AdminDashboardTab extends StatelessWidget {
         return 'BULAN INI';
       case 'Kemarin':
         return 'KEMARIN';
+      case 'Semua':
+        return 'SEMUA';
+      case 'Kustom':
+        return 'KUSTOM';
       default:
         return 'HARI INI';
     }
@@ -57,19 +61,24 @@ class AdminDashboardTab extends StatelessWidget {
         return 'Bulan ini';
       case 'Kemarin':
         return 'Kemarin';
+      case 'Semua':
+        return 'Total semua';
+      case 'Kustom':
+        return 'Rentang terpilih';
       default:
-        return 'Selesai hari ini';
+        return 'Valid hari ini';
     }
   }
 
   /// Calculate previous-period sales for a real growth trend indicator.
   double _calculatePreviousPeriodOmset(
     List<OrderModel> allOrders,
-    String period,
+    AdminDashboardProvider dashboard,
   ) {
+    final period = dashboard.selectedPeriod;
     final now = DateTime.now();
     final prevOrders = allOrders.where((order) {
-      if (order.isCancelled) return false;
+      if (order.isCancelled || order.isWaitingValidation) return false;
       final created = order.createdAt;
 
       if (period == 'Hari Ini') {
@@ -89,6 +98,12 @@ class AdminDashboardTab extends StatelessWidget {
         final prevMonth = DateTime(now.year, now.month - 1);
         return created.year == prevMonth.year &&
             created.month == prevMonth.month;
+      } else if (period == 'Kustom' && dashboard.customDateRange != null) {
+        final r = dashboard.customDateRange!;
+        final spanDays = r.end.difference(r.start).inDays + 1;
+        final prevStart = r.start.subtract(Duration(days: spanDays));
+        final prevEnd = r.start.subtract(const Duration(seconds: 1));
+        return !created.isBefore(prevStart) && !created.isAfter(prevEnd);
       }
       return false;
     });
@@ -387,9 +402,11 @@ class AdminDashboardTab extends StatelessWidget {
 
     final filteredOrders = dashboard.getFilteredOrders(orderProvider.orders);
     final totalOmset = dashboard.calculateTotalOmset(filteredOrders);
+    final grossProfit = dashboard.calculateGrossProfit(filteredOrders);
+    final averageMargin = dashboard.calculateAverageMargin(filteredOrders);
     final previousOmset = _calculatePreviousPeriodOmset(
       orderProvider.orders,
-      dashboard.selectedPeriod,
+      dashboard,
     );
 
     final double? growthPercent;
@@ -464,11 +481,14 @@ class AdminDashboardTab extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 1. TOTAL PENJUALAN CARD
+                    // 1. STANDOUT TOTAL OMZET HERO CARD
                     _buildSalesHeroCard(
                       totalOmset: totalOmset,
+                      grossProfit: grossProfit,
+                      averageMargin: averageMargin,
+                      periodLabel: _shortPeriodLabel(dashboard.selectedPeriod),
                       growthPercent: growthPercent,
-                      onTap: () => onTabNavigate(3),
+                      onTap: () => onTabNavigate(4),
                     ),
 
                     const SizedBox(height: 14),
@@ -528,106 +548,246 @@ class AdminDashboardTab extends StatelessWidget {
 
   Widget _buildSalesHeroCard({
     required double totalOmset,
+    required double grossProfit,
+    required double averageMargin,
+    required String periodLabel,
     required double? growthPercent,
     required VoidCallback onTap,
   }) {
     final isNegative = (growthPercent ?? 0) < 0;
-    final trendColor = growthPercent == null
-        ? const Color(0xFFA88D7B)
-        : (isNegative ? AppColors.berryRed : AppColors.figmaReadyGreen);
-    final trendText = growthPercent == null
-        ? '0%'
-        : '${growthPercent.abs().round()}%';
+    final Color trendBg;
+    final Color trendFg;
+    final String trendText;
+
+    if (growthPercent == null) {
+      trendBg = Colors.white.withOpacity(0.14);
+      trendFg = const Color(0xFFF3DFCE);
+      trendText = '0%';
+    } else if (isNegative) {
+      trendBg = const Color(0xFFDC2626).withOpacity(0.24);
+      trendFg = const Color(0xFFFECACA);
+      trendText = '-${growthPercent.abs().round()}%';
+    } else {
+      trendBg = const Color(0xFF16A34A).withOpacity(0.26);
+      trendFg = const Color(0xFFBBF7D0);
+      trendText = '+${growthPercent.abs().round()}%';
+    }
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFF3ECE4), width: 1),
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF5A3726),
+            Color(0xFF42271B),
+            Color(0xFF2F1B12),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(26),
         boxShadow: [
           BoxShadow(
-            color: AppColors.figmaCoffee.withOpacity(0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 6),
+            color: const Color(0xFF4A2E21).withOpacity(0.28),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(24),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(24),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(22, 20, 20, 22),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(26),
+        child: Stack(
+          children: [
+            // Warm decorative radial highlights
+            Positioned(
+              right: -28,
+              top: -28,
+              child: Container(
+                width: 132,
+                height: 132,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFFD9A679).withOpacity(0.14),
+                ),
+              ),
+            ),
+            Positioned(
+              right: 26,
+              bottom: -36,
+              child: Container(
+                width: 96,
+                height: 96,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.06),
+                ),
+              ),
+            ),
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(26),
+                onTap: onTap,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'TOTAL PENJUALAN',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.7,
-                          color: const Color(0xFFA0806D),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Wrap(
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        spacing: 8,
-                        runSpacing: 4,
+                      Row(
                         children: [
-                          Text(
-                            CurrencyFormatter.format(totalOmset),
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 26,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.6,
-                              color: AppColors.figmaCoffee,
+                          Container(
+                            width: 34,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE7C29B).withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(11),
+                              border: Border.all(
+                                color: const Color(0xFFE7C29B).withOpacity(0.35),
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.account_balance_wallet_rounded,
+                              size: 18,
+                              color: Color(0xFFFBE7CE),
                             ),
                           ),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (growthPercent != null)
-                                Icon(
-                                  isNegative
-                                      ? Icons.arrow_downward_rounded
-                                      : Icons.arrow_upward_rounded,
-                                  size: 15,
-                                  color: trendColor,
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'TOTAL OMZET',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 1.0,
+                                    color: const Color(0xFFF3DFCE),
+                                  ),
                                 ),
-                              if (growthPercent != null)
-                                const SizedBox(width: 2),
-                              Text(
-                                trendText,
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: trendColor,
+                                Text(
+                                  'Periode $periodLabel',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white.withOpacity(0.65),
+                                  ),
                                 ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: trendBg,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: trendFg.withOpacity(0.28),
                               ),
-                            ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (growthPercent != null) ...[
+                                  Icon(
+                                    isNegative
+                                        ? Icons.trending_down_rounded
+                                        : Icons.trending_up_rounded,
+                                    size: 14,
+                                    color: trendFg,
+                                  ),
+                                  const SizedBox(width: 4),
+                                ],
+                                Text(
+                                  trendText,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w800,
+                                    color: trendFg,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 16),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          CurrencyFormatter.format(totalOmset),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 30,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.7,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 9,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.11),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.12),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Laba Kotor ${CurrencyFormatter.formatCompact(grossProfit)} • Margin ${averageMargin.toStringAsFixed(0)}%',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFFF6E7D8),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Detail',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFFFDE68A),
+                                  ),
+                                ),
+                                const SizedBox(width: 2),
+                                const Icon(
+                                  Icons.arrow_forward_rounded,
+                                  size: 14,
+                                  color: Color(0xFFFDE68A),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                const Icon(
-                  Icons.account_balance_wallet_rounded,
-                  size: 38,
-                  color: Color(0xFFEBE6E1),
-                ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );

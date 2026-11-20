@@ -1590,41 +1590,6 @@ class _AdminMenuTabState extends State<AdminMenuTab> {
     );
   }
 
-  IconData _resolveProductLineIcon(ProductModel product, String categoryName) {
-    final text = '${product.name.toLowerCase()} ${categoryName.toLowerCase()}';
-    if (text.contains('croissant') ||
-        text.contains('pastry') ||
-        text.contains('roti') ||
-        text.contains('cake') ||
-        text.contains('bread')) {
-      return Icons.bakery_dining_outlined;
-    }
-    if (text.contains('nasi') ||
-        text.contains('fries') ||
-        text.contains('food') ||
-        text.contains('snack') ||
-        text.contains('meal')) {
-      return Icons.restaurant_outlined;
-    }
-    if (text.contains('choco') ||
-        text.contains('matcha') ||
-        text.contains('thai') ||
-        text.contains('tea') ||
-        text.contains('non-coffee')) {
-      return Icons.local_drink_outlined;
-    }
-    if (text.contains('beans') || text.contains('biji')) {
-      return Icons.grain_rounded;
-    }
-    if (text.contains('latte') ||
-        text.contains('cappuccino') ||
-        text.contains('hot') ||
-        text.contains('manual')) {
-      return Icons.local_cafe_outlined;
-    }
-    return Icons.coffee_outlined;
-  }
-
   Widget _buildProductCard({
     required BuildContext context,
     required MenuProvider menu,
@@ -1679,20 +1644,47 @@ class _AdminMenuTabState extends State<AdminMenuTab> {
             padding: const EdgeInsets.all(14),
             child: Row(
               children: [
-                // Warm beige square thumbnail (#F3ECE4) with minimalist line-art icon
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF3ECE4),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Icon(
-                    _resolveProductLineIcon(product, categoryName),
-                    color: const Color(0xFF4A2E21)
-                        .withOpacity(isAvailable ? 0.92 : 0.55),
-                    size: 30,
-                  ),
+                // Real Product Image from Supabase / Local Assets
+                Stack(
+                  children: [
+                    Opacity(
+                      opacity: isAvailable ? 1.0 : 0.55,
+                      child: AdminProductImage(
+                        imageUrl: product.imageUrl,
+                        size: 64,
+                        borderRadius: 16,
+                      ),
+                    ),
+                    if (product.isOutOfStock)
+                      Positioned.fill(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.45),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          alignment: Alignment.center,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF4A2E21).withOpacity(0.9),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              'HABIS',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 8.5,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.4,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
 
                 const SizedBox(width: 14),
