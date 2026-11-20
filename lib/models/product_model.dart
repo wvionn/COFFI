@@ -93,12 +93,23 @@ class ProductModel {
       categoryId: map['category_id']?.toString(),
       name: map['name']?.toString() ?? '',
       description: map['description']?.toString(),
-      price: ((map['price'] ?? map['selling_price']) as num?)?.toDouble() ?? 0.0,
-      costPrice: ((map['cost_price'] ?? map['purchase_price']) as num?)?.toDouble() ?? 0.0,
-      stock: ((map['stock'] ?? map['current_stock']) as num?)?.toInt() ?? 0,
+      // Support both live Supabase column names (selling_price/purchase_price/current_stock) and legacy names
+      price: (map['selling_price'] as num?)?.toDouble() ??
+          (map['price'] as num?)?.toDouble() ??
+          0.0,
+      costPrice: (map['purchase_price'] as num?)?.toDouble() ??
+          (map['cost_price'] as num?)?.toDouble() ??
+          0.0,
+      stock: (map['current_stock'] as num?)?.toInt() ??
+          (map['stock'] as num?)?.toInt() ??
+          0,
       minStock: (map['min_stock'] as num?)?.toInt() ?? 5,
-      trackStock: map['track_stock'] == null ? true : (map['track_stock'] as bool),
-      isActive: map['is_active'] == null ? true : (map['is_active'] as bool),
+      trackStock: map['track_stock'] == null
+          ? true
+          : (map['track_stock'] as bool? ?? true),
+      isActive: map['is_active'] == null
+          ? true
+          : (map['is_active'] as bool? ?? true),
       imageUrl: _resolveImageUrl(map['image_url']),
       unit: map['unit']?.toString() ?? 'cup',
     );
@@ -110,11 +121,10 @@ class ProductModel {
       'category_id': categoryId,
       'name': name,
       'description': description,
-      'price': price,
-      'cost_price': costPrice,
-      'stock': stock,
+      'selling_price': price,
+      'purchase_price': costPrice,
+      'current_stock': stock,
       'min_stock': minStock,
-      'track_stock': trackStock,
       'is_active': isActive,
       'image_url': imageUrl,
     };

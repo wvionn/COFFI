@@ -417,16 +417,19 @@ class AdminProductImage extends StatelessWidget {
     }
 
     if (resolved.startsWith('assets/')) {
-      final altPng = resolved.toLowerCase().endsWith('.jpg')
+      final lowerRes = resolved.toLowerCase();
+      final String? altAsset = lowerRes.endsWith('.jpg')
           ? '${resolved.substring(0, resolved.length - 4)}.png'
-          : null;
+          : (lowerRes.endsWith('.png')
+              ? '${resolved.substring(0, resolved.length - 4)}.jpg'
+              : null);
       return Image.asset(
         resolved,
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) {
-          if (altPng != null) {
+          if (altAsset != null) {
             return Image.asset(
-              altPng,
+              altAsset,
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => _placeholder(),
             );

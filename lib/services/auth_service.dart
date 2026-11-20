@@ -53,8 +53,9 @@ class AuthService {
     required String email,
   }) {
     final lower = email.toLowerCase();
-    final existingIndex =
-        _demoStaffList.indexWhere((s) => s.email?.toLowerCase() == lower);
+    final existingIndex = _demoStaffList.indexWhere(
+      (s) => s.email?.toLowerCase() == lower,
+    );
     if (existingIndex != -1) {
       _demoStaffList[existingIndex] = _demoStaffList[existingIndex].copyWith(
         fullName: fullName,
@@ -91,7 +92,9 @@ class AuthService {
     String? fullName,
   }) async {
     final sb = SupabaseService.instance;
-    final name = fullName?.trim().isNotEmpty == true ? fullName!.trim() : email.split('@').first;
+    final name = fullName?.trim().isNotEmpty == true
+        ? fullName!.trim()
+        : email.split('@').first;
 
     if (sb.isConnected) {
       try {
@@ -150,11 +153,14 @@ class AuthService {
     required String password,
   }) async {
     final cleanEmail = email.trim().toLowerCase();
+    final isDemoAccount = _demoStaffList.any(
+      (u) => u.isActive && u.email?.toLowerCase() == cleanEmail,
+    );
     final sb = SupabaseService.instance;
     if (sb.isConnected) {
       try {
         final res = await sb.client.auth.signInWithPassword(
-          email: email,
+          email: cleanEmail,
           password: password,
         );
         if (res.user != null) {
@@ -221,6 +227,17 @@ class AuthService {
         }
       } catch (e) {
         debugPrint('Auth signInWithEmail error: $e');
+        // If it's a demo account and not yet registered in Supabase Auth, fall back gracefully
+        if (isDemoAccount) {
+          debugPrint('Falling back to local demo profile for $cleanEmail');
+          final matched = _demoStaffList
+              .where((u) => u.isActive && u.email?.toLowerCase() == cleanEmail)
+              .toList();
+          if (matched.isNotEmpty) {
+            _currentProfile = matched.first;
+            return _currentProfile;
+          }
+        }
         rethrow;
       }
     }
@@ -240,7 +257,9 @@ class AuthService {
       _currentProfile = _demoStaffList[0];
     } else if (lower.contains('dapur') || lower.contains('barista')) {
       _currentProfile = _demoStaffList[2];
-    } else if (lower.contains('user') || lower.contains('pelanggan') || lower.contains('customer')) {
+    } else if (lower.contains('user') ||
+        lower.contains('pelanggan') ||
+        lower.contains('customer')) {
       _currentProfile = _demoStaffList[3];
     } else {
       _currentProfile = _demoStaffList[1];
@@ -248,13 +267,15 @@ class AuthService {
     return _currentProfile;
   }
 
-
   /// Admin: Fetch all staff profiles
   Future<List<ProfileModel>> fetchStaffList() async {
     final sb = SupabaseService.instance;
     if (sb.isConnected) {
       try {
-        final data = await sb.client.from('profiles').select().order('full_name');
+        final data = await sb.client
+            .from('profiles')
+            .select()
+            .order('full_name');
         return (data as List).map((e) => ProfileModel.fromMap(e)).toList();
       } catch (e) {
         debugPrint('Error fetchStaffList: $e');
