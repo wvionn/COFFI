@@ -21,6 +21,7 @@ class OrderModel {
   final DateTime createdAt;
   final DateTime? updatedAt;
   final List<OrderItemModel> items;
+  final String? paymentMethod; // 'cash', 'qris', 'transfer', 'cashless' (resolved from payments table)
 
   OrderModel({
     required this.id,
@@ -43,6 +44,7 @@ class OrderModel {
     required this.createdAt,
     this.updatedAt,
     this.items = const [],
+    this.paymentMethod,
   });
 
   bool get isDineIn => orderType == 'dine_in';
@@ -57,6 +59,30 @@ class OrderModel {
   bool get isCompleted => status == 'selesai';
   bool get isCancelled => status == 'dibatalkan';
 
+  String get resolvedPaymentMethod {
+    final raw = paymentMethod?.trim().toLowerCase();
+    if (raw != null && raw.isNotEmpty) return raw;
+    if (cashierName?.toLowerCase().contains('self-order') == true) {
+      return 'qris';
+    }
+    return 'cash';
+  }
+
+  bool get isCashPayment => resolvedPaymentMethod == 'cash';
+  bool get isQrisOrDigitalPayment => !isCashPayment;
+
+  String get paymentMethodLabel {
+    switch (resolvedPaymentMethod) {
+      case 'qris':
+      case 'cashless':
+        return 'QRIS';
+      case 'transfer':
+        return 'Transfer';
+      default:
+        return 'Cash';
+    }
+  }
+
   int get elapsedMinutes => DateTime.now().difference(createdAt).inMinutes;
 
   String get elapsedTimeString {
@@ -66,7 +92,11 @@ class OrderModel {
     return '$minutes:$seconds';
   }
 
-  factory OrderModel.fromMap(Map<String, dynamic> map, {List<OrderItemModel>? items}) {
+  factory OrderModel.fromMap(
+    Map<String, dynamic> map, {
+    List<OrderItemModel>? items,
+    String? paymentMethod,
+  }) {
     DateTime parseDate(dynamic val) {
       if (val == null) return DateTime.now();
       if (val is DateTime) return val;
@@ -75,7 +105,7 @@ class OrderModel {
 
     return OrderModel(
       id: map['id']?.toString() ?? '',
-      invoiceNumber: map['invoice_number']?.toString() ?? '',
+      invoiceNumber: (map['invoice_number'] ?? map['order_number'])?.toString() ?? '',
       orderType: map['order_type']?.toString().toLowerCase() ?? 'dine_in',
       tableId: map['table_id']?.toString(),
       tableNumber: map['table_number']?.toString(),
@@ -86,14 +116,15 @@ class OrderModel {
       cashierId: map['cashier_id']?.toString(),
       cashierName: map['cashier_name']?.toString(),
       status: map['status']?.toString().toLowerCase() ?? 'pending',
-      subtotalAmount: (map['subtotal_amount'] as num?)?.toDouble() ?? 0.0,
-      taxAmount: (map['tax_amount'] as num?)?.toDouble() ?? 0.0,
-      totalAmount: (map['total_amount'] as num?)?.toDouble() ?? 0.0,
+      subtotalAmount: ((map['subtotal_amount'] ?? map['subtotal']) as num?)?.toDouble() ?? 0.0,
+      taxAmount: ((map['tax_amount'] ?? map['tax']) as num?)?.toDouble() ?? 0.0,
+      totalAmount: ((map['total_amount'] ?? map['total_price'] ?? map['grand_total']) as num?)?.toDouble() ?? 0.0,
       totalHpp: (map['total_hpp'] as num?)?.toDouble() ?? 0.0,
       notes: map['notes']?.toString(),
       createdAt: parseDate(map['created_at']),
       updatedAt: map['updated_at'] != null ? parseDate(map['updated_at']) : null,
       items: items ?? [],
+      paymentMethod: paymentMethod ?? map['payment_method']?.toString(),
     );
   }
 
@@ -142,6 +173,7 @@ class OrderModel {
     DateTime? createdAt,
     DateTime? updatedAt,
     List<OrderItemModel>? items,
+    String? paymentMethod,
   }) {
     return OrderModel(
       id: id ?? this.id,
@@ -164,6 +196,7 @@ class OrderModel {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       items: items ?? this.items,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
     );
   }
 }

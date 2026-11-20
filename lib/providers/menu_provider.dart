@@ -303,6 +303,7 @@ class MenuProvider extends ChangeNotifier {
   Future<void> refreshProducts() async {
     _categories = await _service.fetchCategories();
     _products = await _service.fetchProducts();
+    _stockMovements = await _service.fetchStockMovements();
     notifyListeners();
   }
 

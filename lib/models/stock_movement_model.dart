@@ -37,13 +37,20 @@ class StockMovementModel {
     return StockMovementModel(
       id: map['id']?.toString() ?? '',
       productId: map['product_id']?.toString() ?? '',
-      productName: map['product_name']?.toString() ?? 'Produk',
-      type: map['type']?.toString().toLowerCase() ?? 'adjustment',
-      quantity: (map['quantity'] as num?)?.toInt() ?? 0,
-      stockBefore: (map['stock_before'] as num?)?.toInt() ?? 0,
-      stockAfter: (map['stock_after'] as num?)?.toInt() ?? 0,
+      productName: (map['product_name'] ??
+              (map['products'] is Map ? map['products']['name'] : null))
+          ?.toString() ??
+          'Produk',
+      type: (map['type'] ?? map['movement_type'])?.toString().toLowerCase() ??
+          'adjustment',
+      quantity: ((map['quantity'] ?? map['qty']) as num?)?.toInt() ?? 0,
+      stockBefore:
+          ((map['stock_before'] ?? map['previous_stock']) as num?)?.toInt() ??
+              0,
+      stockAfter:
+          ((map['stock_after'] ?? map['new_stock']) as num?)?.toInt() ?? 0,
       referenceId: map['reference_id']?.toString(),
-      notes: map['notes']?.toString(),
+      notes: (map['notes'] ?? map['reason'])?.toString(),
       createdAt: parseDate(map['created_at']),
     );
   }

@@ -342,7 +342,25 @@ class SupabaseService {
         if (!_isValidUuid(payload['category_id'])) {
           payload['category_id'] = null;
         }
-        await client.from('products').upsert(payload);
+        try {
+          await client.from('products').upsert(payload);
+        } catch (_) {
+          // Fallback for live Supabase schema using selling_price/purchase_price/current_stock
+          final altPayload = {
+            'id': product.id,
+            'category_id': _isValidUuid(product.categoryId) ? product.categoryId : null,
+            'name': product.name,
+            'description': product.description,
+            'selling_price': product.price,
+            'purchase_price': product.costPrice,
+            'current_stock': product.stock,
+            'min_stock': product.minStock,
+            'unit': product.displayUnit,
+            'is_active': product.isActive,
+            'image_url': product.imageUrl,
+          };
+          await client.from('products').upsert(altPayload);
+        }
         await fetchProducts();
         return true;
       } catch (e) {
@@ -440,11 +458,15 @@ class SupabaseService {
       try {
         final existing = await client
             .from('products')
-            .select('name, stock')
+            .select()
             .eq('id', productId)
             .maybeSingle();
+        final usesCurrentStockCol =
+            existing != null && existing.containsKey('current_stock');
         if (existing != null) {
-          before = (existing['stock'] as num?)?.toInt() ?? before;
+          before = ((existing['stock'] ?? existing['current_stock']) as num?)
+                  ?.toInt() ??
+              before;
           resolvedName = existing['name']?.toString() ?? resolvedName;
         }
 
@@ -462,7 +484,7 @@ class SupabaseService {
         );
 
         await client.from('products').update({
-          'stock': after,
+          usesCurrentStockCol ? 'current_stock' : 'stock': after,
           'is_active': true,
         }).eq('id', productId);
 
@@ -525,11 +547,15 @@ class SupabaseService {
       try {
         final existing = await client
             .from('products')
-            .select('name, stock')
+            .select()
             .eq('id', productId)
             .maybeSingle();
+        final usesCurrentStockCol =
+            existing != null && existing.containsKey('current_stock');
         if (existing != null) {
-          before = (existing['stock'] as num?)?.toInt() ?? before;
+          before = ((existing['stock'] ?? existing['current_stock']) as num?)
+                  ?.toInt() ??
+              before;
           resolvedName = existing['name']?.toString() ?? resolvedName;
         }
 
@@ -547,7 +573,7 @@ class SupabaseService {
         );
 
         await client.from('products').update({
-          'stock': actualPhysicalStock,
+          usesCurrentStockCol ? 'current_stock' : 'stock': actualPhysicalStock,
           'is_active': actualPhysicalStock > 0,
         }).eq('id', productId);
 
@@ -603,14 +629,48 @@ class SupabaseService {
             .order('created_at', ascending: false)
             .limit(100);
 
+        final orderRows = ordersData as List;
+        final orderIds = orderRows
+            .map((o) => o['id']?.toString())
+            .whereType<String>()
+            .toList();
+
+        final Map<String, String> paymentByOrderId = {};
+        if (orderIds.isNotEmpty) {
+          try {
+            final paymentsData = await client
+                .from('payments')
+                .select('order_id, payment_method')
+                .inFilter('order_id', orderIds);
+            for (final p in (paymentsData as List)) {
+              final oid = p['order_id']?.toString();
+              final method = p['payment_method']?.toString().toLowerCase();
+              if (oid != null && method != null && method.isNotEmpty) {
+                paymentByOrderId[oid] = method;
+              }
+            }
+          } catch (payErr) {
+            debugPrint('Notice: fetch payments in fetchOrders failed: $payErr');
+          }
+        }
+
         final List<OrderModel> fullOrders = [];
-        for (final o in ordersData) {
+        for (final o in orderRows) {
+          final oid = o['id']?.toString() ?? '';
           final itemsData = await client
               .from('order_items')
               .select()
-              .eq('order_id', o['id']);
-          final items = (itemsData as List).map((i) => OrderItemModel.fromMap(i)).toList();
-          fullOrders.add(OrderModel.fromMap(o, items: items));
+              .eq('order_id', oid);
+          final items = (itemsData as List)
+              .map((i) => OrderItemModel.fromMap(i))
+              .toList();
+          fullOrders.add(
+            OrderModel.fromMap(
+              o,
+              items: items,
+              paymentMethod: paymentByOrderId[oid],
+            ),
+          );
         }
 
         _ordersStreamController.add(fullOrders);
@@ -688,6 +748,7 @@ class SupabaseService {
       notes: finalNotes,
       createdAt: now,
       items: mappedItems,
+      paymentMethod: paymentMethod,
     );
 
     final payment = PaymentModel(
@@ -1051,23 +1112,180 @@ class SupabaseService {
       ),
     ];
 
-    _demoOrders.add(OrderModel(
-      id: demoOrderId,
-      invoiceNumber: 'INV/20261005/0001',
-      orderType: 'dine_in',
-      tableId: 't3',
-      tableNumber: 'Meja 03',
-      cashierId: 'kasir_1',
-      cashierName: 'Siti Rahma',
-      status: 'pending',
-      subtotalAmount: 62000,
-      taxAmount: 6200,
-      totalAmount: 68200,
-      totalHpp: 24000,
-      notes: 'Makanan tolong dikeluarkan bersamaan',
-      createdAt: DateTime.now().subtract(const Duration(minutes: 3)),
-      items: demoItems,
-    ));
+    final now = DateTime.now();
+
+    _demoOrders.addAll([
+      OrderModel(
+        id: demoOrderId,
+        invoiceNumber: 'CF-8921',
+        orderType: 'dine_in',
+        tableId: 't3',
+        tableNumber: 'Meja 03',
+        cashierId: 'kasir_1',
+        cashierName: 'Budi S.',
+        status: 'pending',
+        subtotalAmount: 69000,
+        taxAmount: 6900,
+        totalAmount: 75900,
+        totalHpp: 28000,
+        notes: 'Makanan tolong dikeluarkan bersamaan',
+        createdAt: now.subtract(const Duration(minutes: 3)),
+        items: demoItems,
+        paymentMethod: 'qris',
+      ),
+      OrderModel(
+        id: 'ord_demo_02',
+        invoiceNumber: 'CF-8920',
+        orderType: 'takeaway',
+        cashierId: 'kasir_1',
+        cashierName: 'Budi S.',
+        status: 'selesai',
+        subtotalAmount: 20000,
+        taxAmount: 2000,
+        totalAmount: 22000,
+        totalHpp: 10500,
+        createdAt: now.subtract(const Duration(minutes: 28)),
+        paymentMethod: 'cash',
+        items: [
+          OrderItemModel(
+            id: 'item_demo_02_1',
+            orderId: 'ord_demo_02',
+            productId: 'p1',
+            productName: 'COFFI Aren',
+            quantity: 1,
+            unitPrice: 22000,
+            hpp: 10500,
+            subtotal: 22000,
+            isCompleted: true,
+          ),
+        ],
+      ),
+      OrderModel(
+        id: 'ord_demo_03',
+        invoiceNumber: 'CF-8919',
+        orderType: 'takeaway',
+        cashierId: 'admin_1',
+        cashierName: 'Admin',
+        status: 'dibatalkan',
+        subtotalAmount: 45455,
+        taxAmount: 4545,
+        totalAmount: 50000,
+        totalHpp: 20000,
+        notes: 'Kesalahan Input',
+        createdAt: now.subtract(const Duration(minutes: 55)),
+        paymentMethod: 'cash',
+        items: [
+          OrderItemModel(
+            id: 'item_demo_03_1',
+            orderId: 'ord_demo_03',
+            productId: 'p_croissant',
+            productName: 'Almond Croissant',
+            quantity: 2,
+            unitPrice: 25000,
+            hpp: 10000,
+            subtotal: 50000,
+          ),
+        ],
+      ),
+      OrderModel(
+        id: 'ord_demo_04',
+        invoiceNumber: 'CF-8918',
+        orderType: 'dine_in',
+        tableNumber: 'Meja 01',
+        cashierId: 'kasir_2',
+        cashierName: 'Siti Aminah',
+        status: 'selesai',
+        subtotalAmount: 95000,
+        taxAmount: 9500,
+        totalAmount: 104500,
+        totalHpp: 36000,
+        createdAt: now.subtract(const Duration(hours: 2, minutes: 15)),
+        paymentMethod: 'qris',
+        items: [
+          OrderItemModel(
+            id: 'item_demo_04_1',
+            orderId: 'ord_demo_04',
+            productId: 'p4',
+            productName: 'Matcha Zen Latte',
+            quantity: 1,
+            unitPrice: 38000,
+            hpp: 14000,
+            subtotal: 38000,
+            isCompleted: true,
+          ),
+          OrderItemModel(
+            id: 'item_demo_04_2',
+            orderId: 'ord_demo_04',
+            productId: 'p3',
+            productName: 'Cafe Latte',
+            quantity: 1,
+            unitPrice: 32000,
+            hpp: 12000,
+            subtotal: 32000,
+            isCompleted: true,
+          ),
+          OrderItemModel(
+            id: 'item_demo_04_3',
+            orderId: 'ord_demo_04',
+            productId: 'p_croissant',
+            productName: 'Almond Croissant',
+            quantity: 1,
+            unitPrice: 25000,
+            hpp: 10000,
+            subtotal: 25000,
+            isCompleted: true,
+          ),
+        ],
+      ),
+    ]);
+
+    _demoStockMovements.addAll([
+      StockMovementModel(
+        id: 'sm_demo_01',
+        productId: 'p1',
+        productName: 'COFFI Aren',
+        type: 'out',
+        quantity: 2,
+        stockBefore: 37,
+        stockAfter: 35,
+        referenceId: demoOrderId,
+        notes: 'Penjualan',
+        createdAt: now.subtract(const Duration(minutes: 12)),
+      ),
+      StockMovementModel(
+        id: 'sm_demo_02',
+        productId: 'p3',
+        productName: 'Cafe Latte',
+        type: 'in',
+        quantity: 10,
+        stockBefore: 15,
+        stockAfter: 25,
+        notes: 'Restock',
+        createdAt: now.subtract(const Duration(hours: 2, minutes: 10)),
+      ),
+      StockMovementModel(
+        id: 'sm_demo_03',
+        productId: 'p2',
+        productName: 'Iced Americano',
+        type: 'out',
+        quantity: 5,
+        stockBefore: 45,
+        stockAfter: 40,
+        notes: 'Pemakaian',
+        createdAt: now.subtract(const Duration(days: 1, hours: 3)),
+      ),
+      StockMovementModel(
+        id: 'sm_demo_04',
+        productId: 'p_croissant',
+        productName: 'Almond Croissant',
+        type: 'adjustment',
+        quantity: -3,
+        stockBefore: 28,
+        stockAfter: 25,
+        notes: 'Opname: Stock Opname',
+        createdAt: now.subtract(const Duration(days: 1, hours: 5)),
+      ),
+    ]);
 
     // Mark Meja 03 as occupied
     final m3Index = _demoTables.indexWhere((t) => t.id == 't3');
