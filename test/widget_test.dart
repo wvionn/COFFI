@@ -26,10 +26,7 @@ Widget createTestApp(Widget home) {
       ChangeNotifierProvider(create: (_) => OrderProvider()),
       ChangeNotifierProvider(create: (_) => AdminDashboardProvider()),
     ],
-    child: MaterialApp(
-      theme: AppTheme.lightTheme,
-      home: home,
-    ),
+    child: MaterialApp(theme: AppTheme.lightTheme, home: home),
   );
 }
 
@@ -47,7 +44,9 @@ void main() {
     expect(find.text('Lanjutkan sebagai Tamu (Guest Mode)'), findsOneWidget);
   });
 
-  testWidgets('WelcomeScreen navigation to LoginScreen', (WidgetTester tester) async {
+  testWidgets('WelcomeScreen navigation to LoginScreen', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(createTestApp(const WelcomeScreen()));
     await tester.pumpAndSettle();
 
@@ -58,19 +57,22 @@ void main() {
     expect(find.text('MASUK'), findsOneWidget);
   });
 
-  testWidgets('WelcomeScreen Guest Mode navigates directly to CustomerMainScreen', (WidgetTester tester) async {
-    await tester.pumpWidget(createTestApp(const WelcomeScreen()));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'WelcomeScreen Guest Mode navigates directly to CustomerMainScreen',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(createTestApp(const WelcomeScreen()));
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Lanjutkan sebagai Tamu (Guest Mode)'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
-    await tester.pump(const Duration(milliseconds: 500));
+      await tester.tap(find.text('Lanjutkan sebagai Tamu (Guest Mode)'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 500));
 
-    expect(find.text('LOKASI OUTLET'), findsOneWidget);
-    expect(find.text('Rekomendasi Favorit'), findsOneWidget);
-    expect(find.text('Beranda'), findsOneWidget);
-  });
+      expect(find.text('LOKASI OUTLET'), findsOneWidget);
+      expect(find.text('Rekomendasi Favorit'), findsOneWidget);
+      expect(find.text('Beranda'), findsOneWidget);
+    },
+  );
 
   testWidgets('LoginScreen elements check', (WidgetTester tester) async {
     tester.view.physicalSize = const Size(390 * 3, 844 * 3);
@@ -82,7 +84,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Selamat Datang!'), findsOneWidget);
-    expect(find.text('Silakan masuk untuk melanjutkan pesanan Anda.'), findsOneWidget);
+    expect(
+      find.text('Silakan masuk untuk melanjutkan pesanan Anda.'),
+      findsOneWidget,
+    );
     expect(find.text('MASUK'), findsOneWidget);
     expect(find.text('Atau masuk dengan'), findsOneWidget);
     expect(find.text('Google'), findsOneWidget);
@@ -103,7 +108,9 @@ void main() {
     expect(find.text('Atau masuk dengan'), findsOneWidget);
   });
 
-  testWidgets('Dashboard has no layout overflow on phone-sized screen', (WidgetTester tester) async {
+  testWidgets('Dashboard has no layout overflow on phone-sized screen', (
+    WidgetTester tester,
+  ) async {
     tester.view.physicalSize = const Size(390 * 3, 844 * 3);
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -122,7 +129,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('CustomerMainScreen Dashboard & Navigation elements check', (WidgetTester tester) async {
+  testWidgets('CustomerMainScreen Dashboard & Navigation elements check', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(createTestApp(const CustomerMainScreen()));
     // Let async futures resolve
     await tester.pump();
@@ -154,19 +163,22 @@ void main() {
     expect(find.text('Semua'), findsOneWidget);
   });
 
-  testWidgets('AdminMainScreen Dashboard and Kelola Produk render and work interactively', (WidgetTester tester) async {
-    tester.view.physicalSize = const Size(390 * 3, 844 * 3);
-    tester.view.devicePixelRatio = 3.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets(
+    'AdminMainScreen Dashboard and Kelola Produk render and work interactively',
+    (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(createTestApp(const AdminMainScreen()));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpWidget(createTestApp(const AdminMainScreen()));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
 
     // Verify Senopati Branch is removed and core dashboard elements are shown
     expect(find.text('Senopati Branch'), findsNothing);
-    expect(find.text('TOTAL PENJUALAN'), findsOneWidget);
+    expect(find.text('TOTAL PENJUALAN'), findsNothing);
+    expect(find.text('TOTAL OMZET'), findsWidgets);
     expect(find.text('TRANSAKSI'), findsOneWidget);
     expect(find.text('STOK KRITIS'), findsWidgets);
     expect(find.text('Grafik Penjualan'), findsOneWidget);
@@ -174,53 +186,116 @@ void main() {
     expect(find.text('Menu Terlaris'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    // Test interactive period selector on Grafik Penjualan
-    await tester.tap(find.text('HARI INI'));
+      // Test interactive period selector on Grafik Penjualan
+      await tester.tap(find.text('HARI INI'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('7 Hari Terakhir'));
+      await tester.pumpAndSettle();
+      expect(find.text('7 HARI'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      // Test LIHAT SEMUA navigates to Kelola Produk tab
+      await tester.ensureVisible(find.text('LIHAT SEMUA'));
+      await tester.tap(find.text('LIHAT SEMUA'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(find.text('Kelola Produk'), findsOneWidget);
+      expect(find.text('Tambah Produk'), findsOneWidget);
+      expect(find.text('Kategori: Semua'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      // Tapping a product navigates to dedicated Edit Produk screen
+      await tester.tap(find.text('Almond Croissant').first);
+      await tester.pumpAndSettle();
+      expect(find.text('Edit Produk'), findsOneWidget);
+      expect(find.text('Foto Produk'), findsOneWidget);
+      expect(find.text('Satuan Produk'), findsOneWidget);
+      expect(find.text('SIMPAN PRODUK'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      // Return to Kelola Produk via BATAL
+      await tester.tap(find.text('BATAL'));
+      await tester.pumpAndSettle();
+      expect(find.text('Kelola Produk'), findsOneWidget);
+
+      // Switch to Kelola Kategori sub-tab
+      await tester.tap(find.text('Kategori'));
+      await tester.pumpAndSettle();
+      expect(find.text('Kelola Kategori'), findsOneWidget);
+      expect(find.text('Tambah Kategori'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      // Switch to Kelola Varian & Add-on sub-tab
+      await tester.tap(find.text('Varian & Add-on'));
+      await tester.pumpAndSettle();
+      expect(find.text('Kelola Varian & Add-on'), findsOneWidget);
+      expect(find.text('DAFTAR ADD-ON'), findsOneWidget);
+      expect(find.text('Extra Shot'), findsOneWidget);
+      expect(find.text('Tambah Add-on'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      // Navigate to Manajemen Stok tab via bottom navigation bar
+      await tester.tap(find.text('Stok'));
+      await tester.pumpAndSettle();
+      expect(find.text('Manajemen Stok'), findsOneWidget);
+      expect(find.text('DAFTAR INVENTARIS'), findsOneWidget);
+      expect(find.text('Lihat Detail'), findsWidgets);
+      expect(find.text('Restock'), findsWidgets);
+      expect(tester.takeException(), isNull);
+
+      // Switch to Riwayat Mutasi sub-tab
+      await tester.tap(find.text('Riwayat Mutasi'));
+      await tester.pumpAndSettle();
+      expect(find.text('Stok Masuk'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+    // Verify bottom nav replaced Sistem with Laporan
+    expect(find.text('Sistem'), findsNothing);
+    expect(find.text('Laporan'), findsOneWidget);
+
+    // Navigate to Riwayat Transaksi tab via bottom nav
+    await tester.tap(find.text('Riwayat'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('7 Hari Terakhir'));
+    expect(find.text('Riwayat Transaksi'), findsOneWidget);
+    expect(find.text('TOTAL ORDER'), findsOneWidget);
+    expect(find.text('OMZET'), findsOneWidget);
+    expect(find.text('AKTIVITAS TERBARU'), findsOneWidget);
+    expect(find.text('Detail'), findsWidgets);
+    await tester.drag(find.byType(ListView).last, const Offset(0, -400));
     await tester.pumpAndSettle();
-    expect(find.text('7 HARI'), findsOneWidget);
+    expect(find.text('Muat Lebih Banyak'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    // Test LIHAT SEMUA navigates to Kelola Produk tab
-    await tester.ensureVisible(find.text('LIHAT SEMUA'));
-    await tester.tap(find.text('LIHAT SEMUA'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
-
-    expect(find.text('Kelola Produk'), findsOneWidget);
-    expect(find.text('Tambah Produk'), findsOneWidget);
-    expect(find.text('Kategori: Semua'), findsOneWidget);
+    // Navigate to Laporan tab via bottom nav (Laporan Penjualan & Mutasi Stok)
+    await tester.tap(find.text('Laporan'));
+    await tester.pumpAndSettle();
+    expect(find.text('Laporan Penjualan'), findsWidgets);
+    expect(find.text('EXPORT\nEXCEL'), findsNothing);
+    expect(find.text('TOTAL OMZET'), findsWidgets);
+    expect(find.text('CASH'), findsOneWidget);
+    expect(find.text('QRIS'), findsOneWidget);
+    expect(find.text('RINGKASAN SHIFT (Z-REPORT)'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    // Tapping a product navigates to dedicated Edit Produk screen
-    await tester.tap(find.text('Almond Croissant').first);
+    // Switch to Laporan Mutasi Stok sub-tab (next to Laporan Penjualan)
+    await tester.tap(find.text('Mutasi Stok'));
     await tester.pumpAndSettle();
-    expect(find.text('Edit Produk'), findsOneWidget);
-    expect(find.text('Foto Produk'), findsOneWidget);
-    expect(find.text('Satuan Produk'), findsOneWidget);
-    expect(find.text('SIMPAN PRODUK'), findsOneWidget);
+    expect(find.text('Laporan Mutasi Stok'), findsOneWidget);
+    expect(find.text('RINGKASAN MUTASI'), findsOneWidget);
+    expect(find.text('TOTAL MASUK'), findsOneWidget);
+    expect(find.text('TOTAL KELUAR'), findsOneWidget);
+    expect(find.text('COFFI Aren'), findsWidgets);
     expect(tester.takeException(), isNull);
 
-    // Return to Kelola Produk via BATAL
-    await tester.tap(find.text('BATAL'));
+    // Open top-right hamburger menu and verify Pengaturan Sistem moved there (and no Buka Mode Kasir POS)
+    await tester.tap(find.byIcon(Icons.menu_rounded).last);
     await tester.pumpAndSettle();
-    expect(find.text('Kelola Produk'), findsOneWidget);
-
-    // Switch to Kelola Kategori sub-tab
-    await tester.tap(find.text('Kategori'));
+    expect(find.text('Buka Mode Kasir POS'), findsNothing);
+    expect(find.text('Pengaturan Sistem'), findsOneWidget);
+    await tester.tap(find.text('Pengaturan Sistem'));
     await tester.pumpAndSettle();
-    expect(find.text('Kelola Kategori'), findsOneWidget);
-    expect(find.text('Tambah Kategori'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-
-    // Switch to Kelola Varian & Add-on sub-tab
-    await tester.tap(find.text('Varian & Add-on'));
-    await tester.pumpAndSettle();
-    expect(find.text('Kelola Varian & Add-on'), findsOneWidget);
-    expect(find.text('DAFTAR ADD-ON'), findsOneWidget);
-    expect(find.text('Extra Shot'), findsOneWidget);
-    expect(find.text('Tambah Add-on'), findsOneWidget);
+    expect(find.text('PENGATURAN & MODUL'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
